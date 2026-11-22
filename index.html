@@ -129,11 +129,27 @@
     }
     .hero-top .name { font-weight: 700; letter-spacing: 0.08em; }
     #lv { color: var(--gold); margin-left: 6px; }
-    .stat-pills { display: flex; gap: 8px; color: var(--muted); font-size: 12px; }
+    .stat-pills { display: flex; flex-wrap: wrap; gap: 6px 8px; color: var(--muted); font-size: 11px; justify-content: flex-end; }
     .stat-pills b { color: var(--text); font-weight: 700; }
     .stat-pills .atk b { color: var(--atk); }
     .stat-pills .def b { color: #8eb7ff; }
     .stat-pills .crit b { color: #ffd24a; }
+    .stat-pills .cdmg b { color: #ff9a6b; }
+    .stat-pills .hit b { color: #8fd9a8; }
+    .stat-pills .dodge b { color: #7ecbff; }
+    .stat-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px 8px;
+      margin-top: 8px;
+      padding: 7px 8px;
+      background: #160f20;
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .stat-panel b { color: var(--text); font-weight: 700; }
     .bar {
       position: relative;
       height: 16px;
@@ -592,8 +608,10 @@
       animation: floatup 0.85s ease-out forwards;
       z-index: 4;
     }
-    .dmg-float.crit { font-size: 28px; color: #ffd24a !important; }
+    .dmg-float.crit { font-size: 32px; color: #ffd24a !important; letter-spacing: 0.04em; text-shadow: 0 2px 0 #000, 0 0 14px #ffb14acc; }
     .dmg-float.heal { color: #6ee09a !important; }
+    .dmg-float.miss { font-size: 20px; color: #9aa4b8 !important; letter-spacing: 0.12em; }
+    .dmg-float.evade { font-size: 22px; color: #6ee0c4 !important; }
     @keyframes floatup {
       0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
       70% { opacity: 1; }
@@ -670,6 +688,10 @@
     }
     .bag-tools .mini { padding: 6px 9px; }
     .bag-tools .mini.on { background: #2a4a34; border-color: #4a8a5a; color: #c8ffd4; }
+    .inherit-list { display: flex; flex-direction: column; gap: 8px; max-height: 46vh; overflow: auto; margin: 10px 0; }
+    .inherit-pick { text-align: left; width: 100%; padding: 10px 12px; }
+    .inherit-pick .sub { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+    .inherit-warn { color: #f0c75e; font-size: 12px; margin: 8px 0; }
     .slot-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -832,10 +854,14 @@
             <span class="atk">攻 <b id="stat-atk">10</b></span>
             <span class="def">防 <b id="stat-def">3</b></span>
             <span class="crit">暴 <b id="stat-crit">10%</b></span>
+            <span class="cdmg">爆傷 <b id="stat-cdmg">165%</b></span>
+            <span class="hit">命中 <b id="stat-hit">90%</b></span>
+            <span class="dodge">閃避 <b id="stat-dodge">5%</b></span>
           </div>
         </div>
         <div class="bar hp"><div class="fill" id="hp-fill"></div><span class="bar-text" id="hp-text">100 / 100</span></div>
         <div class="bar exp"><div class="fill" id="exp-fill"></div><span class="bar-text" id="exp-text">經驗 0 / 20</span></div>
+        <div class="stat-panel" id="stat-panel"></div>
       </div>
       <div class="mode-bar">
         <div class="seg" id="mode-toggle">
@@ -1036,7 +1062,7 @@
     function cacheEls() {
       var ids = [
         'stage-label','wave-label','coins','lv','stat-atk','stat-def',
-        'hp-fill','hp-text','exp-fill','exp-text','stat-crit','arena','fx','monster-wrap',
+        'hp-fill','hp-text','exp-fill','exp-text','stat-crit','stat-cdmg','stat-hit','stat-dodge','stat-panel','arena','fx','monster-wrap',
         'monster-emoji','monster-name','mhp-bar','mhp-fill','mhp-text','banner',
         'log','btn-attack','auto-status','bag-body','enhance-body','shop-body',
         'modal','intro','toast','btn-mute','btn-reset','btn-save','btn-lb','player-chip','save-status','mode-toggle','mode-hint','file-import'
@@ -1107,6 +1133,9 @@
     function effectiveDef(g) { return (g.def || 0) + plusDef(g) + lifeBonus(g).def; }
     function effectiveHp(g) { return (g.hp || 0) + plusHp(g) + lifeBonus(g).hp; }
     function effectiveCrit(g) { return (g.crit || 0) + plusCrit(g) + lifeBonus(g).crit; }
+    function effectiveHit(g) { return g.hit || 0; }
+    function effectiveDodge(g) { return g.dodge || 0; }
+    function effectiveCritDmg(g) { return g.critDmg || 0; }
     function sumEq(fn) {
       var t = 0;
       for (var i = 0; i < SLOT_DEFS.length; i++) {
@@ -1126,7 +1155,22 @@
     }
     function playerCritRate(manual) {
       var base = manual ? 0.18 : 0.1;
-      return Math.min(0.75, base + sumEq(effectiveCrit));
+      return Math.min(0.80, base + sumEq(effectiveCrit));
+    }
+    function playerCritDmg() {
+      return Math.min(3.5, 1.65 + sumEq(effectiveCritDmg));
+    }
+    function playerHit() {
+      return Math.min(1, 0.90 + (S.level - 1) * 0.002 + sumEq(effectiveHit));
+    }
+    function playerDodge() {
+      return Math.min(0.60, 0.05 + (S.level - 1) * 0.001 + sumEq(effectiveDodge));
+    }
+    function hitChance(atkHit, defDodge) {
+      return Math.max(0.15, Math.min(0.95, (atkHit || 0) - (defDodge || 0)));
+    }
+    function fmtPct(v) {
+      return (Math.round((v || 0) * 1000) / 10) + '%';
     }
 
     function clampHp() {
@@ -1205,34 +1249,47 @@
         slot: sid,
         rarity: rid,
         name: pre + base,
-        atk: 0, def: 0, hp: 0, crit: 0,
+        atk: 0, def: 0, hp: 0, crit: 0, hit: 0, dodge: 0, critDmg: 0,
         plus: 0,
         life: 0,
         stage: stage
       };
+      function sec(min, max) {
+        return Math.round((min + (max - min) * roll) * R.mult * 1000) / 1000;
+      }
       if (sid === 'weapon') {
         item.atk = Math.max(1, Math.round(core));
+        item.hit = sec(0.02, 0.055);
+        item.critDmg = sec(0.04, 0.10);
       } else if (sid === 'helm') {
         item.def = Math.max(1, Math.round(core * 0.55));
         item.hp = Math.max(0, Math.round(core * 1.2));
+        item.dodge = sec(0.01, 0.035);
       } else if (sid === 'armor') {
         item.def = Math.max(1, Math.round(core * 0.72));
         item.hp = Math.max(0, Math.round(core * 2.2));
+        item.dodge = sec(0.008, 0.025);
       } else if (sid === 'necklace') {
         item.atk = Math.max(1, Math.round(core * 0.45));
         item.crit = Math.round((0.02 + R.mult * 0.008 + roll * 0.02) * 1000) / 1000;
+        item.critDmg = sec(0.05, 0.12);
       } else if (sid === 'gloves') {
         item.atk = Math.max(1, Math.round(core * 0.4));
         item.def = Math.max(0, Math.round(core * 0.2));
+        item.hit = sec(0.03, 0.08);
+        item.crit = sec(0.01, 0.04);
       } else if (sid === 'legs') {
         item.def = Math.max(1, Math.round(core * 0.6));
         item.hp = Math.max(0, Math.round(core * 1.6));
+        item.dodge = sec(0.02, 0.06);
       } else if (sid === 'boots') {
         item.def = Math.max(1, Math.round(core * 0.45));
         item.hp = Math.max(0, Math.round(core * 1.0));
+        item.dodge = sec(0.03, 0.08);
       } else {
         item.hp = Math.max(4, Math.round(core * 2.8));
         item.def = Math.max(0, Math.round(core * 0.15));
+        item.crit = sec(0.01, 0.03);
       }
       return item;
     }
@@ -1250,13 +1307,19 @@
       var coinMul = randomize ? (0.85 + Math.random() * 0.35) : 1;
       var coins = Math.round((7 + stage * 4) * (isBoss ? 4.2 : 1) * coinMul);
       var exp = Math.round((10 + stage * 6) * (isBoss ? 3.4 : 1));
-      return { hp: hp, atk: atk, def: def, coins: coins, exp: exp };
+      var dodge = Math.min(0.40, 0.02 + stage * 0.006) * (isBoss ? 1.15 : 1);
+      var hit = Math.min(0.95, 0.70 + stage * 0.007) * (isBoss ? 1.05 : 1);
+      if (hit > 0.95) hit = 0.95;
+      return { hp: hp, atk: atk, def: def, coins: coins, exp: exp, dodge: dodge, hit: hit };
     }
 
-    function avgDamage(atk, def) {
-      var raw = atk - def * 0.55;
-      var dmg = Math.max(1, raw);
-      return dmg * 1.065;
+    function avgDamage(atk, def, opts) {
+      opts = opts || {};
+      var raw = Math.max(1, atk - def * 0.55);
+      var land = opts.land != null ? opts.land : 1;
+      var crit = opts.crit != null ? opts.crit : 0;
+      var cd = opts.critDmg != null ? opts.critDmg : 1.65;
+      return raw * 1.065 * land * ((1 - crit) + crit * cd);
     }
 
     function spawnMonster(silent) {
@@ -1279,7 +1342,9 @@
         atk: st.atk,
         def: st.def,
         coins: st.coins,
-        exp: st.exp
+        exp: st.exp,
+        hit: st.hit,
+        dodge: st.dodge
       };
       monTimer = 0;
       var wrap = el['monster-wrap'];
@@ -1303,10 +1368,10 @@
       el['mhp-text'].textContent = Math.max(0, Math.ceil(monster.hp)) + ' / ' + monster.maxHp;
     }
 
-    function calcDmg(atk, def, critMul) {
+    function calcDmg(atk, def, critMul, critDmgMul) {
       var raw = atk * (0.86 + Math.random() * 0.28) - def * 0.55;
       var dmg = Math.max(1, Math.round(raw));
-      if (critMul) dmg = Math.max(2, Math.round(dmg * 1.65));
+      if (critMul) dmg = Math.max(2, Math.round(dmg * (critDmgMul || 1.65)));
       return dmg;
     }
 
@@ -1404,6 +1469,8 @@
         beep(2093, 0.11, 'sine', 0.07, 0.05);
         beep(2637, 0.16, 'triangle', 0.05, 0.1);
       }
+      else if (kind === 'miss') { beep(180, 0.08, 'triangle', 0.04, 0, 90); }
+      else if (kind === 'evade') { beep(880, 0.07, 'sine', 0.05); beep(1200, 0.09, 'sine', 0.04, 0.05); }
     }
 
     function log(msg, cls) {
@@ -1420,11 +1487,11 @@
       el.log.innerHTML = html;
     }
 
-    function toast(msg) {
+    function toast(msg, ms) {
       el.toast.textContent = msg;
       el.toast.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(function () { el.toast.classList.remove('show'); }, 1400);
+      toastTimer = setTimeout(function () { el.toast.classList.remove('show'); }, ms || 1400);
     }
 
     function showBanner(text) {
@@ -1433,13 +1500,14 @@
       setTimeout(function () { el.banner.classList.remove('show'); }, 1800);
     }
 
-    function floatText(text, color, crit, xRatio) {
+    function floatText(text, color, crit, xRatio, kind) {
       var arena = el.arena;
       if (!arena) return;
       if (arena.querySelectorAll('.dmg-float').length >= 8) return;
       var rec = arena.getBoundingClientRect();
       var d = document.createElement('div');
-      d.className = 'dmg-float' + (crit ? ' crit' : '') + (color === '#6ee09a' ? ' heal' : '');
+      d.className = 'dmg-float' + (crit ? ' crit' : '') + (color === '#6ee09a' ? ' heal' : '') +
+        (kind === 'miss' ? ' miss' : '') + (kind === 'evade' ? ' evade' : '');
       d.textContent = text;
       d.style.color = color || '#fff';
       var xr = xRatio == null ? (0.38 + Math.random() * 0.24) : xRatio;
@@ -1521,6 +1589,9 @@
       if (g.def == null) g.def = 0;
       if (g.hp == null) g.hp = 0;
       if (g.crit == null) g.crit = 0;
+      if (g.hit == null) g.hit = 0;
+      if (g.dodge == null) g.dodge = 0;
+      if (g.critDmg == null) g.critDmg = 0;
       return g;
     }
     function bestInSlot(slot) {
@@ -1549,6 +1620,9 @@
           def: stats.def || 0,
           hp: stats.hp || 0,
           crit: 0,
+          hit: 0,
+          dodge: 0,
+          critDmg: 0,
           plus: plus,
           life: 0,
           stage: Math.max(1, S.stage || 1)
@@ -1594,6 +1668,16 @@
       ensurePlayerId();
     }
 
+    function normalizeMonster(m) {
+      if (!m) return m;
+      if (m.hit == null || m.dodge == null) {
+        var st = monsterStats(S.stage || 1, !!m.isBoss, false);
+        if (m.hit == null) m.hit = st.hit;
+        if (m.dodge == null) m.dodge = st.dodge;
+      }
+      return m;
+    }
+
     function applyPayload(data) {
       var d = defaultState();
       for (var k in d) if (Object.prototype.hasOwnProperty.call(data.S, k)) d[k] = data.S[k];
@@ -1603,7 +1687,7 @@
       if (S.hp == null || S.level < 1) return false;
       migrateState();
       clampHp();
-      if (data.monster && data.monster.maxHp) monster = data.monster;
+      if (data.monster && data.monster.maxHp) monster = normalizeMonster(data.monster);
       else monster = null;
       var ls = data.lastSeen;
       if (ls == null && data.S) ls = data.S.lastSeen;
@@ -1644,7 +1728,11 @@
       return S.bestFloor;
     }
     function playerPower() {
-      return Math.max(0, Math.round(playerAtk() * 10 + playerDef() * 12 + playerMaxHp() * 1.5 + (S.level || 1) * 5));
+      return Math.max(0, Math.round(
+        playerAtk() * 10 + playerDef() * 12 + playerMaxHp() * 1.5 + (S.level || 1) * 5 +
+        playerCritRate(false) * 400 + (playerCritDmg() - 1) * 200 +
+        playerHit() * 250 + playerDodge() * 300
+      ));
     }
     function lbHeaders() {
       return {
@@ -2179,7 +2267,9 @@
       if (!g) return 0;
       var r = RARITY[g.rarity] ? RARITY[g.rarity].mult : 0;
       return effectiveAtk(g) * 10 + effectiveDef(g) * 12 + effectiveHp(g) * 1.5 +
-        effectiveCrit(g) * 400 + (g.plus || 0) * 3 + (g.life || 0) * 8 + r;
+        effectiveCrit(g) * 400 + effectiveCritDmg(g) * 200 +
+        effectiveHit(g) * 250 + effectiveDodge(g) * 300 +
+        (g.plus || 0) * 3 + (g.life || 0) * 8 + r;
     }
 
     function isEquipped(g) {
@@ -2324,8 +2414,13 @@
       }
 
       function fightInfo(hp, st, iv, stage) {
-        var pDps = avgDamage(playerAtk(), st.def) / (iv / 1000);
-        var mDps = avgDamage(st.atk, playerDef()) / (monAtkInterval(stage) / 1000);
+        var pLand = hitChance(playerHit(), st.dodge || 0);
+        var mLand = hitChance(st.hit || 0.8, playerDodge());
+        var pDps = avgDamage(playerAtk(), st.def, {
+          land: pLand, crit: playerCritRate(false), critDmg: playerCritDmg()
+        }) / (iv / 1000);
+        var mDps = avgDamage(st.atk, playerDef(), { land: mLand, crit: 0, critDmg: 1 }) /
+          (monAtkInterval(stage) / 1000);
         var ttk = hp / Math.max(0.001, pDps);
         var tdie = playerMaxHp() / Math.max(0.001, mDps);
         return { pDps: pDps, ttk: ttk, tdie: tdie, can: ttk < tdie * 0.95 };
@@ -2337,7 +2432,8 @@
         monster = {
           name: isBoss ? ('首領・' + tplS.name) : tplS.name,
           emoji: tplS.emoji, isBoss: isBoss,
-          hp: hp, maxHp: st.hp, atk: st.atk, def: st.def, coins: st.coins, exp: st.exp
+          hp: hp, maxHp: st.hp, atk: st.atk, def: st.def, coins: st.coins, exp: st.exp,
+          hit: st.hit, dodge: st.dodge
         };
       }
 
@@ -2366,6 +2462,9 @@
           hp = monster.hp;
           st.atk = monster.atk; st.def = monster.def;
           st.coins = monster.coins; st.exp = monster.exp;
+          if (monster.hit != null) st.hit = monster.hit;
+          if (monster.dodge != null) st.dodge = monster.dodge;
+          normalizeMonster(monster);
           st.hp = monster.maxHp || st.hp;
         } else {
           hp = st.hp;
@@ -2581,6 +2680,13 @@
       renderAll();
     }
 
+    var combatRolls = [];
+    function nextRoll() {
+      if (combatRolls.length) return combatRolls.shift();
+      return Math.random();
+    }
+    function setCombatRolls(arr) { combatRolls = (arr || []).slice(); }
+
     function doPlayerAttack(auto) {
       if (combatLock || !monster || monster.hp <= 0) return;
       if (S.hp <= 0) return;
@@ -2589,8 +2695,19 @@
       if (!auto && now - lastAtk < ATK_CD) return;
       lastAtk = now;
       var manual = !auto && S.trainMode === 'manual';
-      var crit = Math.random() < playerCritRate(manual);
-      var dmg = calcDmg(playerAtk(), monster.def, crit);
+      normalizeMonster(monster);
+      var land = hitChance(playerHit(), monster.dodge || 0);
+      if (nextRoll() >= land) {
+        var showMiss = !auto || (now - lastAutoFx >= 150);
+        if (showMiss) {
+          lastAutoFx = now;
+          sfx('miss');
+          floatText('MISS', '#9aa4b8', false, null, 'miss');
+        }
+        return 'miss';
+      }
+      var crit = nextRoll() < playerCritRate(manual);
+      var dmg = calcDmg(playerAtk(), monster.def, crit, playerCritDmg());
       if (manual) dmg = Math.max(1, Math.round(dmg * 1.35));
       monster.hp -= dmg;
       var showFx = !auto || crit || (now - lastAutoFx >= 150);
@@ -2612,11 +2729,18 @@
         renderMonsterBar();
         onMonsterDead();
       }
+      return crit ? 'crit' : 'hit';
     }
 
     function doMonsterAttack() {
       if (document.hidden) return;
       if (combatLock || !monster || monster.hp <= 0 || S.hp <= 0) return;
+      normalizeMonster(monster);
+      if (nextRoll() >= hitChance(monster.hit || 0.8, playerDodge())) {
+        sfx('evade');
+        floatText('閃避', '#6ee0c4', false, 0.22, 'evade');
+        return 'evade';
+      }
       var dmg = calcDmg(monster.atk, playerDef(), false);
       S.hp -= dmg;
       sfx('hurt');
@@ -2624,6 +2748,7 @@
       if (S.hp < 0) S.hp = 0;
       renderHero();
       if (S.hp <= 0) playerDie();
+      return 'hurt';
     }
 
     function renderHero() {
@@ -2636,6 +2761,21 @@
       el['stat-atk'].textContent = String(playerAtk());
       el['stat-def'].textContent = String(playerDef());
       if (el['stat-crit']) el['stat-crit'].textContent = Math.round(playerCritRate(false) * 100) + '%';
+      if (el['stat-cdmg']) el['stat-cdmg'].textContent = Math.round(playerCritDmg() * 100) + '%';
+      if (el['stat-hit']) el['stat-hit'].textContent = fmtPct(playerHit());
+      if (el['stat-dodge']) el['stat-dodge'].textContent = fmtPct(playerDodge());
+      if (el['stat-panel']) {
+        el['stat-panel'].innerHTML =
+          '<div>攻擊 <b>' + playerAtk() + '</b></div>' +
+          '<div>防禦 <b>' + playerDef() + '</b></div>' +
+          '<div>生命上限 <b>' + playerMaxHp() + '</b></div>' +
+          '<div>暴擊 <b>' + fmtPct(playerCritRate(false)) + '</b></div>' +
+          '<div>爆擊傷害 <b>' + Math.round(playerCritDmg() * 100) + '%</b></div>' +
+          '<div>命中 <b>' + fmtPct(playerHit()) + '</b></div>' +
+          '<div>閃避 <b>' + fmtPct(playerDodge()) + '</b></div>' +
+          '<div>戰力 <b>' + playerPower() + '</b></div>' +
+          '<div>手動暴擊 <b>' + fmtPct(playerCritRate(true)) + '</b></div>';
+      }
       el.lv.textContent = 'Lv.' + S.level;
       el['stage-label'].textContent = '第 ' + S.stage + ' 層';
       var wlabel = S.wave === WAVES_PER_STAGE ? '首領戰' : ('怪物 ' + S.wave + ' / ' + WAVES_PER_STAGE);
@@ -2693,10 +2833,14 @@
       if (!g) return '';
       var bits = [];
       var atk = effectiveAtk(g), def = effectiveDef(g), hp = effectiveHp(g), crit = effectiveCrit(g);
+      var hit = effectiveHit(g), dodge = effectiveDodge(g), cd = effectiveCritDmg(g);
       if (atk) bits.push('攻擊 +' + atk);
       if (def) bits.push('防禦 +' + def);
       if (hp) bits.push('生命 +' + hp);
       if (crit) bits.push('暴擊 +' + Math.round(crit * 1000) / 10 + '%');
+      if (cd) bits.push('爆傷 +' + Math.round(cd * 1000) / 10 + '%');
+      if (hit) bits.push('命中 +' + Math.round(hit * 1000) / 10 + '%');
+      if (dodge) bits.push('閃避 +' + Math.round(dodge * 1000) / 10 + '%');
       var extra = [];
       if (g.plus) extra.push('<span class="plus-tag">+' + g.plus + '</span>');
       if (g.life) extra.push('<span class="life-tag">生命+' + g.life + '</span>');
@@ -2749,11 +2893,12 @@
       html += '</div>';
       html += '<h2>寶石</h2>' + gemBarHtml();
       html += '<h2>背包（' + S.inv.length + '）</h2>';
-      html += '<p class="hint">打怪掉落八部位裝備與祝福／靈魂／生命寶石。背包無上限，可排序或一鍵出售較差裝備。</p>';
+      html += '<p class="hint">打怪掉落八部位裝備與寶石。可一鍵穿裝最強裝備，或把強化繼承到同部位新裝備（來源重置為 +0）。</p>';
       html += '<div class="bag-tools">';
       html += '<button type="button" class="mini' + (bagSort === 'power' ? ' on' : '') + '" data-sort="power">依強度</button>';
       html += '<button type="button" class="mini' + (bagSort === 'rarity' ? ' on' : '') + '" data-sort="rarity">依稀有度</button>';
       html += '<button type="button" class="mini' + (bagSort === 'type' ? ' on' : '') + '" data-sort="type">依類型</button>';
+      html += '<button type="button" class="mini ok" id="btn-auto-equip">一鍵穿裝</button>';
       html += '<button type="button" class="mini warn" id="btn-sell-junk">一鍵出售較差裝備</button>';
       html += '</div>';
       html += '<div class="bag-tools">';
@@ -2823,13 +2968,15 @@
         (equipped
           ? '<button class="mini" data-uneq="' + g.id + '">卸下</button>'
           : '<button class="mini ok" data-eq="' + g.id + '">裝備</button>') +
+        ((g.plus || g.life) ? '<button class="mini" data-inherit="' + g.id + '">繼承強化到…</button>' : '') +
         '<button class="mini warn" data-sell="' + g.id + '">出售</button>' +
         '</div></div>';
     }
 
     function sellPrice(g) {
       var R = RARITY[g.rarity] || RARITY.common;
-      var core = effectiveAtk(g) + effectiveDef(g) + effectiveHp(g) * 0.15 + effectiveCrit(g) * 40;
+      var core = effectiveAtk(g) + effectiveDef(g) + effectiveHp(g) * 0.15 + effectiveCrit(g) * 40 +
+        effectiveHit(g) * 20 + effectiveDodge(g) * 24 + effectiveCritDmg(g) * 16;
       return Math.max(8, Math.round((8 + (g.stage || 1) * 3 + core * 1.8) * (R.mult * 0.55)));
     }
 
@@ -2849,6 +2996,11 @@
       el['bag-body'].querySelectorAll('[data-filter]').forEach(function (b) {
         b.onclick = function () { bagFilter = b.getAttribute('data-filter'); bagShown = BAG_PAGE; renderBag(); };
       });
+      el['bag-body'].querySelectorAll('[data-inherit]').forEach(function (b) {
+        b.onclick = function () { showInheritPicker(+b.getAttribute('data-inherit')); };
+      });
+      var autoEq = document.getElementById('btn-auto-equip');
+      if (autoEq) autoEq.onclick = autoEquipBest;
       var junk = document.getElementById('btn-sell-junk');
       if (junk) junk.onclick = sellWorseItems;
       var more = document.getElementById('btn-bag-more');
@@ -2886,11 +3038,162 @@
       S.eqA = S.eq.armor || null;
     }
 
-    function equipItem(id) {
+    function inheritCost(src) {
+      if (!src) return 20;
+      return 20 + (src.plus || 0) * 12 + (src.life || 0) * 25;
+    }
+    function inheritEnhance(srcId, dstId, opts) {
+      opts = opts || {};
+      var src = findItem(srcId), dst = findItem(dstId);
+      if (!src || !dst) return { ok: false, reason: 'noitem' };
+      if (src.id === dst.id) return { ok: false, reason: 'same' };
+      if (itemSlot(src) !== itemSlot(dst)) return { ok: false, reason: 'slot' };
+      var sp = src.plus || 0, sl = src.life || 0;
+      var dp = dst.plus || 0, dl = dst.life || 0;
+      if (!sp && !sl) return { ok: false, reason: 'empty' };
+      var newPlus = Math.max(sp, dp), newLife = Math.max(sl, dl);
+      if (newPlus === dp && newLife === dl && !opts.force) {
+        return { ok: false, reason: 'noupgrade', plus: newPlus, life: newLife };
+      }
+      var cost = inheritCost(src);
+      if (S.coins < cost) return { ok: false, reason: 'coins', cost: cost };
+      S.coins -= cost;
+      dst.plus = newPlus;
+      dst.life = newLife;
+      src.plus = 0;
+      src.life = 0;
+      clampHp();
+      save();
+      if (!opts.silent) {
+        renderAll();
+        toast('已將強化繼承到「' + dst.name + '」：+' + newPlus + (newLife ? ' 生命+' + newLife : '') + '（-' + cost + ' 金幣）', 2200);
+        log('強化繼承：' + src.name + ' → ' + dst.name + '（+' + newPlus + (newLife ? ' 生命+' + newLife : '') + '，來源重置為 +0）', 'ok');
+        sfx('ok');
+      }
+      return { ok: true, plus: newPlus, life: newLife, cost: cost, src: src, dst: dst };
+    }
+    function enhanceLabel(g) {
+      return '+' + (g.plus || 0) + ((g.life) ? ' 生命+' + g.life : '');
+    }
+    function showInheritPicker(srcId) {
+      var src = findItem(srcId);
+      if (!src) return;
+      if (!(src.plus || src.life)) { toast('這件裝備沒有可繼承的強化'); return; }
+      var slot = itemSlot(src);
+      var info = slotInfo(slot);
+      var cost = inheritCost(src);
+      var targets = S.inv.filter(function (g) { return g.id !== src.id && itemSlot(g) === slot; });
+      if (!targets.length) { toast('背包裡沒有同部位（' + (info ? info.name : slot) + '）可繼承的目標'); return; }
+      targets.sort(function (a, b) { return itemPower(b) - itemPower(a); });
+      var html = '<div class="modal-card" style="text-align:left"><h3>繼承強化到…</h3>';
+      html += '<p>把「' + esc(src.name) + '」的 <b>' + enhanceLabel(src) + '</b> 轉移到同部位裝備。來源會留在背包並重置為 +0，成功機率 100%。花費 <b>🪙 ' + cost + '</b>。</p>';
+      html += '<div class="inherit-list">';
+      for (var i = 0; i < targets.length; i++) {
+        var t = targets[i];
+        var R = RARITY[t.rarity];
+        var np = Math.max(src.plus || 0, t.plus || 0);
+        var nl = Math.max(src.life || 0, t.life || 0);
+        var noUp = np === (t.plus || 0) && nl === (t.life || 0);
+        var note = noUp
+          ? '目標已同樣或更高，繼承不會提升'
+          : ('繼承後：+' + np + (nl ? ' 生命+' + nl : ''));
+        html += '<button type="button" class="inherit-pick ' + R.cls + '" data-inh-to="' + t.id + '"' + (noUp ? ' data-noup="1"' : '') + '>';
+        html += '<div style="color:' + R.color + '">' + esc(t.name) + (isEquipped(t) ? ' <span class="equipped-tag">已裝備</span>' : '') + '</div>';
+        html += '<div class="sub">目前 ' + enhanceLabel(t) + '　' + itemStatText(t, true) + '<br>' + note + '</div>';
+        html += '</button>';
+      }
+      html += '</div><button type="button" class="ghost" id="inh-cancel">取消</button></div>';
+      el.modal.innerHTML = html;
+      el.modal.classList.add('show');
+      document.getElementById('inh-cancel').onclick = function () { el.modal.classList.remove('show'); };
+      el.modal.querySelectorAll('[data-inh-to]').forEach(function (b) {
+        b.onclick = function () {
+          var tid = +b.getAttribute('data-inh-to');
+          if (b.getAttribute('data-noup') === '1') {
+            toast('目標強化已同樣或更高，取消繼承以免重置來源');
+            return;
+          }
+          el.modal.classList.remove('show');
+          var r = inheritEnhance(srcId, tid);
+          if (!r.ok) {
+            if (r.reason === 'coins') toast('金幣不足，需要 🪙 ' + r.cost);
+            else if (r.reason === 'noupgrade') toast('目標強化已同樣或更高，沒有繼承');
+            else toast('無法繼承');
+          }
+        };
+      });
+    }
+    function showInheritOnEquip(oldItem, newItem) {
+      var cost = inheritCost(oldItem);
+      var np = Math.max(oldItem.plus || 0, newItem.plus || 0);
+      var nl = Math.max(oldItem.life || 0, newItem.life || 0);
+      var noUp = np === (newItem.plus || 0) && nl === (newItem.life || 0);
+      var html = '<div class="modal-card" style="text-align:left"><h3>繼承舊裝備強化？</h3>';
+      html += '<p>目前裝備的「' + esc(oldItem.name) + '」有 <b>' + enhanceLabel(oldItem) + '</b>。</p>';
+      html += '<p>要繼承到「' + esc(newItem.name) + '」嗎？結果為 <b>+' + np + (nl ? ' 生命+' + nl : '') + '</b>，花費 <b>🪙 ' + cost + '</b>。舊裝備會留在背包並重置為 +0。</p>';
+      if (noUp) html += '<p class="inherit-warn">新裝備強化已同樣或更高，繼承不會再提升。</p>';
+      html += '<div class="row" style="margin-top:12px">';
+      if (!noUp) html += '<button type="button" class="ok" id="inh-eq-yes">繼承並裝備</button>';
+      html += '<button type="button" id="inh-eq-only">只裝備</button>';
+      html += '<button type="button" class="ghost" id="inh-eq-no">取消</button></div></div>';
+      el.modal.innerHTML = html;
+      el.modal.classList.add('show');
+      document.getElementById('inh-eq-no').onclick = function () { el.modal.classList.remove('show'); };
+      document.getElementById('inh-eq-only').onclick = function () {
+        el.modal.classList.remove('show');
+        equipItem(newItem.id, { skipInherit: true });
+      };
+      var yes = document.getElementById('inh-eq-yes');
+      if (yes) yes.onclick = function () {
+        el.modal.classList.remove('show');
+        var r = inheritEnhance(oldItem.id, newItem.id, { silent: true });
+        if (!r.ok && r.reason === 'coins') {
+          toast('金幣不足（需要 🪙 ' + r.cost + '），改為只裝備');
+        } else if (r.ok) {
+          toast('已繼承強化並裝備「' + newItem.name + '」：+' + r.plus + (r.life ? ' 生命+' + r.life : '') + '（-' + r.cost + ' 金幣）', 2200);
+          log('強化繼承並裝備：' + oldItem.name + ' → ' + newItem.name, 'ok');
+        }
+        equipItem(newItem.id, { skipInherit: true });
+      };
+    }
+    function autoEquipBest() {
+      if (!S.eq) S.eq = emptyEq();
+      var changes = [];
+      for (var i = 0; i < SLOT_DEFS.length; i++) {
+        var slot = SLOT_DEFS[i].id;
+        var cur = getEq(slot);
+        var best = bestInSlot(slot);
+        if (!best) continue;
+        if (cur && cur.id === best.id) continue;
+        if (cur && itemPower(best) <= itemPower(cur) + 0.01) continue;
+        S.eq[slot] = best.id;
+        changes.push(SLOT_DEFS[i].name + '「' + best.name + '」');
+      }
+      syncLegacyEq();
+      clampHp();
+      save();
+      renderAll();
+      if (!changes.length) {
+        toast('目前已是各部位最強裝備');
+        return { changed: 0, changes: [] };
+      }
+      toast('已一鍵穿裝 ' + changes.length + ' 件：' + changes.join('、'), 2800);
+      log('一鍵穿裝：' + changes.join('、'), 'ok');
+      sfx('ok');
+      return { changed: changes.length, changes: changes };
+    }
+
+    function equipItem(id, opts) {
+      opts = opts || {};
       var g = findItem(id);
       if (!g) return;
       var slot = itemSlot(g);
       if (!S.eq) S.eq = emptyEq();
+      var old = getEq(slot);
+      if (!opts.skipInherit && old && old.id !== g.id && (old.plus || old.life)) {
+        showInheritOnEquip(old, g);
+        return;
+      }
       S.eq[slot] = id;
       syncLegacyEq();
       clampHp();
@@ -3401,6 +3704,7 @@
       getState: function () { return S; },
       getMonster: function () { return monster; },
       attack: function () { doPlayerAttack(false); },
+      doPlayerAttack: doPlayerAttack,
       spawn: spawnMonster,
       save: stampAndSave,
       reset: resetGame,
@@ -3426,12 +3730,26 @@
       migrateState: migrateState,
       makeGear: makeGear,
       enhanceItem: enhanceItem,
+      inheritEnhance: inheritEnhance,
+      inheritCost: inheritCost,
+      autoEquipBest: autoEquipBest,
       addGem: addGem,
       rollGemDrops: rollGemDrops,
       nextPlusRate: nextPlusRate,
       effectiveAtk: effectiveAtk,
       effectiveDef: effectiveDef,
       effectiveHp: effectiveHp,
+      effectiveHit: effectiveHit,
+      effectiveDodge: effectiveDodge,
+      effectiveCrit: effectiveCrit,
+      effectiveCritDmg: effectiveCritDmg,
+      playerHit: playerHit,
+      playerDodge: playerDodge,
+      playerCritRate: playerCritRate,
+      playerCritDmg: playerCritDmg,
+      hitChance: hitChance,
+      setCombatRolls: setCombatRolls,
+      doMonsterAttack: doMonsterAttack,
       itemSlot: itemSlot,
       getEq: getEq,
       equipItem: equipItem,
