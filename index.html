@@ -1,0 +1,3126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="深淵奪寶">
+  <meta name="theme-color" content="#0b0810">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>深淵奪寶</title>
+  <style>
+    :root {
+      --bg0: #07050b;
+      --bg1: #110c18;
+      --bg2: #1a1424;
+      --panel: #1c1528cc;
+      --line: #4a3a63;
+      --line-soft: #2c233c;
+      --gold: #f0c75e;
+      --gold-dim: #b8892d;
+      --text: #efe6d6;
+      --muted: #9a8e7a;
+      --hp: #d44545;
+      --hp-hi: #ff6d6d;
+      --exp: #3d9a68;
+      --exp-hi: #6ee09a;
+      --atk: #e07a4a;
+      --def: #5b8fd4;
+      --danger: #ff5a5a;
+      --ok: #6ee09a;
+      --r-common: #c8c4bc;
+      --r-rare: #4ea3ff;
+      --r-epic: #c46bff;
+      --r-legend: #ffb14a;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      height: 100%;
+      background: var(--bg0);
+      color: var(--text);
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", "Source Han Sans TC", system-ui, sans-serif;
+      user-select: none;
+      overflow: hidden;
+    }
+    body {
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, #3a1d4a55, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, #1a102e88, transparent 55%),
+        linear-gradient(180deg, #0c0812 0%, #07050b 100%);
+    }
+    #app {
+      max-width: 460px;
+      height: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      padding-top: var(--safe-t);
+      position: relative;
+      background:
+        linear-gradient(180deg, #16101fcc 0%, #0e0a14ee 100%);
+      box-shadow: 0 0 80px #000a, inset 0 0 0 1px #2a2038;
+    }
+    header { padding: 10px 14px 8px; flex-shrink: 0; }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 18px;
+      letter-spacing: 0.18em;
+      font-weight: 700;
+      color: var(--gold);
+      text-shadow: 0 0 18px #f0c75e55, 0 2px 0 #000;
+    }
+    .icon-btns { display: flex; gap: 6px; }
+    .icon-btn {
+      background: #211a2e;
+      border: 1px solid var(--line);
+      color: var(--text);
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      display: grid; place-items: center;
+    }
+    .icon-btn:active { transform: scale(0.94); background: #2a2238; }
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .pill {
+      background: #2a1f38;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 10px;
+      color: var(--gold);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .pill.wave { color: #d7c6ff; font-weight: 500; }
+    .coins {
+      margin-left: auto;
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 15px;
+      display: flex; align-items: center; gap: 4px;
+      text-shadow: 0 0 10px #f0c75e44;
+    }
+    .hero-card {
+      background: linear-gradient(180deg, #241b32 0%, #1a1426 100%);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px 10px 10px;
+      box-shadow: inset 0 1px 0 #ffffff12, 0 4px 16px #0006;
+    }
+    .hero-top {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 6px; font-size: 13px;
+    }
+    .hero-top .name { font-weight: 700; letter-spacing: 0.08em; }
+    #lv { color: var(--gold); margin-left: 6px; }
+    .stat-pills { display: flex; gap: 8px; color: var(--muted); font-size: 12px; }
+    .stat-pills b { color: var(--text); font-weight: 700; }
+    .stat-pills .atk b { color: var(--atk); }
+    .stat-pills .def b { color: #8eb7ff; }
+    .stat-pills .crit b { color: #ffd24a; }
+    .bar {
+      position: relative;
+      height: 16px;
+      background: #0c0a10;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #000;
+      margin-top: 5px;
+      box-shadow: inset 0 1px 3px #0008;
+    }
+    .bar .fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 8px;
+      transition: width 0.25s ease;
+      position: relative;
+    }
+    .bar .fill::after {
+      content: "";
+      position: absolute; inset: 0 auto 50% 0; right: 0;
+      background: linear-gradient(180deg, #fff6, transparent);
+    }
+    .bar.hp .fill { background: linear-gradient(180deg, var(--hp-hi), var(--hp)); }
+    .bar.exp .fill { background: linear-gradient(180deg, var(--exp-hi), var(--exp)); }
+    .bar.mhp { height: 14px; margin-top: 6px; }
+    .bar.mhp .fill { background: linear-gradient(180deg, #ff8a4a, #c13a2a); }
+    .bar.boss .fill { background: linear-gradient(180deg, #ff6b9d, #9b1c4a); }
+    .bar-text {
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.04em;
+      text-shadow: 0 1px 2px #000d;
+      pointer-events: none;
+    }
+    main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 0 12px;
+    }
+    .panel { display: none; flex: 1; min-height: 0; flex-direction: column; }
+    .panel.active { display: flex; }
+    #arena {
+      position: relative;
+      flex: 1;
+      min-height: 180px;
+      margin-top: 8px;
+      border-radius: 14px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 80%, #3a204055, transparent 70%),
+        linear-gradient(180deg, #1a1224 0%, #0c0814 100%);
+      border: 1px solid var(--line);
+      box-shadow: inset 0 0 40px #0008;
+      cursor: pointer;
+    }
+    #fx {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 3;
+    }
+    #monster-wrap {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 2;
+      padding: 12px 16px 20px;
+    }
+    #monster-emoji {
+      font-size: 86px;
+      line-height: 1;
+      filter: drop-shadow(0 10px 8px #000a);
+      animation: idle 2.4s ease-in-out infinite;
+      transform-origin: 50% 80%;
+      text-shadow: 0 0 24px #000;
+    }
+    #monster-wrap.boss #monster-emoji {
+      font-size: 100px;
+      animation: idle 1.6s ease-in-out infinite, bossglow 1.8s ease-in-out infinite;
+    }
+    #monster-wrap.hit #monster-emoji { animation: none; }
+    #monster-wrap.hit { animation: shake 0.28s ease; }
+    #monster-wrap.die #monster-emoji { animation: die 0.45s ease forwards; }
+    @keyframes idle {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-8px) rotate(2deg); }
+    }
+    @keyframes bossglow {
+      0%, 100% { filter: drop-shadow(0 10px 8px #000a) drop-shadow(0 0 12px #ff4d6d88); }
+      50% { filter: drop-shadow(0 10px 8px #000a) drop-shadow(0 0 26px #ffb14a99); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(4px); }
+    }
+    @keyframes die {
+      to { transform: translateY(20px) scale(0.4) rotate(20deg); opacity: 0; }
+    }
+    #monster-name {
+      margin-top: 6px;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.1em;
+      text-shadow: 0 2px 8px #000;
+    }
+    #monster-wrap.boss #monster-name { color: #ffb0c0; }
+    .platform {
+      position: absolute;
+      left: 18%; right: 18%; bottom: 14%;
+      height: 18px;
+      background: radial-gradient(ellipse at center, #3a2a48, #1a1220 70%);
+      border-radius: 50%;
+      filter: blur(1px);
+      opacity: 0.85;
+      z-index: 1;
+    }
+    #banner {
+      position: absolute;
+      top: 10px; left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      background: linear-gradient(180deg, #5a1a2a, #3a1018);
+      border: 1px solid #ff8aa0;
+      color: #ffe0e6;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 5;
+      transition: opacity 0.3s, transform 0.3s;
+      white-space: nowrap;
+      box-shadow: 0 4px 20px #ff2a4a44;
+    }
+    #banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #log {
+      height: 52px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.45;
+      overflow: hidden;
+      padding: 4px 6px;
+      background: #0c0912aa;
+      border-radius: 8px;
+      border: 1px solid var(--line-soft);
+    }
+    #log div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #log .good { color: var(--gold); }
+    #log .rare { color: var(--r-rare); }
+    #log .epic { color: var(--r-epic); }
+    #log .legend { color: var(--r-legend); }
+    #log .bad { color: #ff8a8a; }
+    #log .ok { color: var(--ok); }
+    .atk-row {
+      display: flex; gap: 8px;
+      padding: 8px 0 6px;
+      flex-shrink: 0;
+    }
+    #btn-attack {
+      flex: 1;
+      height: 52px;
+      border: 1px solid #e8b45a;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #d4a23a 0%, #8a5a12 100%);
+      color: #1a1004;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.28em;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #4a2e08, 0 6px 16px #0008, inset 0 1px 0 #ffe29a;
+      font-family: inherit;
+    }
+    #btn-attack:active, #btn-attack.cd {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #4a2e08, 0 3px 8px #0006, inset 0 1px 0 #ffe29a;
+    }
+    #btn-attack:disabled {
+      filter: grayscale(0.4) brightness(0.7);
+      cursor: default;
+    }
+    #auto-status {
+      min-width: 72px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #1a1426;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 4px 8px;
+    }
+    #auto-status.on { color: var(--ok); border-color: #2e6a48; }
+    #auto-status b { font-size: 14px; display: block; }
+    .scroll-panel {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 10px 2px 12px;
+    }
+    .scroll-panel h2 {
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      color: var(--gold);
+      margin: 2px 0 6px;
+      font-weight: 700;
+    }
+    .hint { font-size: 11px; color: var(--muted); margin-bottom: 8px; line-height: 1.45; }
+    .item {
+      display: flex; align-items: center; gap: 10px;
+      background: #1a1426;
+      border: 1px solid var(--line-soft);
+      border-left-width: 4px;
+      border-radius: 10px;
+      padding: 9px 10px;
+      margin-bottom: 8px;
+    }
+    .item.r-common { border-left-color: var(--r-common); }
+    .item.r-rare { border-left-color: var(--r-rare); }
+    .item.r-epic { border-left-color: var(--r-epic); box-shadow: 0 0 12px #c46bff22; }
+    .item.r-legend { border-left-color: var(--r-legend); box-shadow: 0 0 16px #ffb14a33; }
+    .item .ico { font-size: 26px; width: 32px; text-align: center; }
+    .item .meta { flex: 1; min-width: 0; }
+    .item .iname { font-size: 13px; font-weight: 700; }
+    .item .istats { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .item .actions { display: flex; flex-direction: column; gap: 4px; }
+    .mini, .shop-btn, .enh-btn {
+      border: 1px solid var(--line);
+      background: #2a2238;
+      color: var(--text);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .mini.ok, .shop-btn.ok, .enh-btn.ok { background: #2a4a34; border-color: #4a8a5a; color: #c8ffd4; }
+    .mini.warn, .shop-btn.warn { background: #4a2a20; border-color: #8a5a40; color: #ffd0b0; }
+    .mini:disabled, .shop-btn:disabled, .enh-btn:disabled { opacity: 0.4; cursor: default; }
+    .mini:active, .shop-btn:active, .enh-btn:active { transform: scale(0.97); }
+    .equipped-tag { font-size: 10px; color: var(--gold); margin-left: 4px; }
+    .empty { text-align: center; color: var(--muted); padding: 28px 10px; font-size: 13px; }
+    .enh-card, .shop-card {
+      background: linear-gradient(180deg, #241b32, #1a1426);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .enh-card .row, .shop-card .row {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .enh-plus {
+      font-size: 28px; font-weight: 800; color: var(--gold);
+      text-shadow: 0 0 16px #f0c75e44;
+    }
+    .rate { font-size: 12px; color: var(--muted); margin: 8px 0; }
+    .rate b { color: var(--text); }
+    .rate.risky b { color: #ffb14a; }
+    .rate.danger b { color: var(--danger); }
+    .enh-btn {
+      width: 100%;
+      height: 42px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      background: linear-gradient(180deg, #3a2a58, #2a1a40);
+      border-color: #7a5aa0;
+    }
+    .flash-ok { animation: flashok 0.6s ease; }
+    .flash-fail { animation: flashfail 0.6s ease; }
+    @keyframes flashok { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 22px #6ee09a88; } }
+    @keyframes flashfail { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 22px #ff5a5a88; } }
+    .shop-card .price { color: var(--gold); font-weight: 700; }
+    .shop-card p { font-size: 12px; color: var(--muted); margin: 6px 0 10px; line-height: 1.45; }
+    nav {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      flex-shrink: 0;
+      background: #120c1a;
+      border-top: 1px solid var(--line);
+      padding-bottom: var(--safe-b);
+    }
+    nav button {
+      background: transparent;
+      border: 0;
+      color: var(--muted);
+      padding: 10px 0 8px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.08em;
+      position: relative;
+    }
+    nav button .ico { display: block; font-size: 18px; margin-bottom: 2px; }
+    nav button.active { color: var(--gold); }
+    nav button.active::before {
+      content: "";
+      position: absolute; top: 0; left: 20%; right: 20%;
+      height: 2px; background: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
+    }
+    #modal, #intro {
+      position: absolute; inset: 0;
+      background: #06040acc;
+      display: none;
+      align-items: center; justify-content: center;
+      z-index: 20;
+      padding: 20px;
+    }
+    #modal.show, #intro.show { display: flex; }
+    .modal-card {
+      background: linear-gradient(180deg, #2a1e38, #160f20);
+      border: 1px solid var(--gold-dim);
+      border-radius: 16px;
+      padding: 22px 18px 16px;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+      box-shadow: 0 12px 40px #000c, 0 0 0 1px #000, 0 0 40px #f0c75e22;
+      animation: popin 0.28s ease;
+    }
+    @keyframes popin {
+      from { transform: scale(0.86); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-card h3 { color: var(--gold); letter-spacing: 0.16em; margin-bottom: 10px; font-size: 18px; }
+    .modal-card p { font-size: 14px; color: var(--text); line-height: 1.7; margin-bottom: 8px; }
+    .modal-card .sub { color: var(--muted); font-size: 12px; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .modal-actions button, #intro-ok {
+      flex: 1;
+      height: 42px;
+      border-radius: 10px;
+      border: 1px solid var(--gold-dim);
+      background: linear-gradient(180deg, #d4a23a, #8a5a12);
+      color: #1a1004;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 15px;
+    }
+    .modal-actions button.ghost {
+      background: #221a30;
+      color: var(--text);
+      border-color: var(--line);
+      font-weight: 600;
+    }
+    #toast {
+      position: absolute;
+      top: 30%; left: 50%;
+      transform: translate(-50%, -10px);
+      background: #1a1228ee;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 25;
+      transition: opacity 0.25s, transform 0.25s;
+      white-space: nowrap;
+      box-shadow: 0 8px 24px #000a;
+    }
+    #toast.show { opacity: 1; transform: translate(-50%, 0); }
+    #player-fx {
+      position: absolute;
+      left: 14px; right: 14px; top: 0;
+      height: 0;
+      pointer-events: none;
+      z-index: 6;
+    }
+    .dmg-float {
+      position: absolute;
+      font-weight: 800;
+      font-size: 22px;
+      pointer-events: none;
+      text-shadow: 0 2px 0 #000, 0 0 8px #000;
+      animation: floatup 0.85s ease-out forwards;
+      z-index: 4;
+    }
+    .dmg-float.crit { font-size: 28px; color: #ffd24a !important; }
+    .dmg-float.heal { color: #6ee09a !important; }
+    @keyframes floatup {
+      0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      70% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -56px) scale(1.15); }
+    }
+    .loot-line { margin: 4px 0; font-size: 14px; }
+    .offline-stats {
+      text-align: left;
+      margin: 12px 0 8px;
+      padding: 10px 12px;
+      background: #120c1acc;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.75;
+    }
+    .offline-stats .row-s {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--text);
+    }
+    .offline-stats .row-s span:last-child { color: var(--gold); font-weight: 700; }
+    .offline-stats .drops { margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .offline-note { font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 6px; }
+    .offline-note.warn { color: #ffb14a; }
+    .modal-card.offline-card { text-align: center; }
+    .modal-card.offline-card h3 { letter-spacing: 0.2em; }
+    .save-status {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      font-weight: 600;
+    }
+    .save-status.ok { color: #8fd9a8; }
+    .save-status.warn { color: #ffb14a; }
+    .save-status.bad { color: var(--danger); }
+    .mode-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .seg {
+      display: flex;
+      background: #160f20;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .seg button {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    .seg button.on {
+      background: linear-gradient(180deg, #3a2a58, #2a1a40);
+      color: var(--gold);
+    }
+    .mode-hint { font-size: 11px; color: var(--muted); line-height: 1.3; }
+    .bag-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0 0 8px;
+    }
+    .bag-tools .mini { padding: 6px 9px; }
+    .bag-tools .mini.on { background: #2a4a34; border-color: #4a8a5a; color: #c8ffd4; }
+    .slot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin: 0 0 10px;
+    }
+    .slot-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 52px;
+      padding: 6px 8px;
+      background: #1a1426;
+      border: 1px solid var(--line-soft);
+      border-left-width: 4px;
+      border-radius: 10px;
+      text-align: left;
+      color: inherit;
+      font-family: inherit;
+      width: 100%;
+      cursor: default;
+    }
+    .slot-cell.empty { opacity: 0.78; }
+    .slot-cell.pick { cursor: pointer; }
+    .slot-cell.selected {
+      box-shadow: 0 0 0 1px #f0c75e, 0 0 12px #f0c75e44;
+    }
+    .slot-cell .ico { font-size: 20px; width: 24px; text-align: center; flex-shrink: 0; }
+    .slot-cell .meta { flex: 1; min-width: 0; }
+    .slot-cell .slabel {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+    .slot-cell .iname {
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .slot-cell .istats {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 1px;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .gem-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0 0 10px;
+    }
+    .gem-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #160f20;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .plus-tag { color: var(--gold); font-weight: 800; }
+    .life-tag { color: #ff8aa0; font-weight: 800; }
+    .bag-group {
+      font-size: 11px;
+      color: var(--gold);
+      letter-spacing: 0.1em;
+      margin: 10px 0 6px;
+      font-weight: 700;
+    }
+    .bag-more { width: 100%; margin-top: 4px; }
+    .enh-need { font-size: 12px; color: var(--muted); line-height: 1.6; margin: 6px 0; }
+    .enh-need b { color: var(--text); }
+    .item {
+      /* already defined earlier — tighter via extra class */
+    }
+    .item.compact { padding: 7px 8px; margin-bottom: 6px; }
+    .item.compact .ico { font-size: 22px; width: 26px; }
+    #save-code {
+      width: 100%;
+      min-height: 90px;
+      margin: 8px 0;
+      background: #0c0912;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 11px;
+      font-family: ui-monospace, Menlo, monospace;
+      user-select: text;
+      -webkit-user-select: text;
+      resize: vertical;
+    }
+    .save-help { font-size: 12px; color: var(--muted); line-height: 1.6; text-align: left; margin: 8px 0 10px; }
+    #bookmark-hint {
+      display: none;
+      align-items: flex-start;
+      gap: 8px;
+      margin: 0 0 8px;
+      padding: 8px 10px;
+      background: #2a1f38;
+      border: 1px solid var(--gold-dim);
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text);
+    }
+    #bookmark-hint.show { display: flex; }
+    #bookmark-hint button {
+      margin-left: auto;
+      flex-shrink: 0;
+      border: 1px solid var(--line);
+      background: #211a2e;
+      color: var(--text);
+      border-radius: 7px;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div id="bookmark-hint">
+        <span>請加入書籤，之後都從這個網址開啟，進度會自動保存。</span>
+        <button type="button" id="btn-hint-ok">知道了</button>
+      </div>
+      <div class="title-row">
+        <div>
+          <h1>深淵奪寶</h1>
+          <div id="save-status" class="save-status">存檔檢查中…</div>
+        </div>
+        <div class="icon-btns">
+          <button class="icon-btn" id="btn-save" title="匯出／匯入存檔">💾</button>
+          <button class="icon-btn" id="btn-mute" title="音效">🔊</button>
+          <button class="icon-btn" id="btn-reset" title="重置進度">↺</button>
+        </div>
+      </div>
+      <div class="meta-row">
+        <span class="pill" id="stage-label">第 1 層</span>
+        <span class="pill wave" id="wave-label">怪物 1 / 6</span>
+        <span class="coins" id="coins">🪙 0</span>
+      </div>
+      <div class="hero-card">
+        <div class="hero-top">
+          <div class="name">冒險者<span id="lv">Lv.1</span></div>
+          <div class="stat-pills">
+            <span class="atk">攻 <b id="stat-atk">10</b></span>
+            <span class="def">防 <b id="stat-def">3</b></span>
+            <span class="crit">暴 <b id="stat-crit">10%</b></span>
+          </div>
+        </div>
+        <div class="bar hp"><div class="fill" id="hp-fill"></div><span class="bar-text" id="hp-text">100 / 100</span></div>
+        <div class="bar exp"><div class="fill" id="exp-fill"></div><span class="bar-text" id="exp-text">經驗 0 / 20</span></div>
+      </div>
+      <div class="mode-bar">
+        <div class="seg" id="mode-toggle">
+          <button type="button" data-mode="auto" class="on">自動練功</button>
+          <button type="button" data-mode="manual">手動練功</button>
+        </div>
+        <span id="mode-hint" class="mode-hint"></span>
+      </div>
+    </header>
+    <input type="file" id="file-import" accept=".json,.txt,application/json,text/plain" hidden>
+    <main>
+      <section class="panel active" id="panel-battle">
+        <div id="arena">
+          <div class="platform"></div>
+          <canvas id="fx"></canvas>
+          <div id="monster-wrap">
+            <div id="monster-emoji">🟢</div>
+            <div id="monster-name">黏液史萊姆</div>
+            <div class="bar mhp" id="mhp-bar" style="width:72%">
+              <div class="fill" id="mhp-fill"></div>
+              <span class="bar-text" id="mhp-text">0 / 0</span>
+            </div>
+          </div>
+          <div id="banner"></div>
+        </div>
+        <div id="log"></div>
+        <div class="atk-row">
+          <button id="btn-attack" type="button">攻擊</button>
+          <div id="auto-status">自動攻擊<br><b>未解鎖</b></div>
+        </div>
+      </section>
+      <section class="panel" id="panel-bag">
+        <div class="scroll-panel" id="bag-body"></div>
+      </section>
+      <section class="panel" id="panel-enhance">
+        <div class="scroll-panel" id="enhance-body"></div>
+      </section>
+      <section class="panel" id="panel-shop">
+        <div class="scroll-panel" id="shop-body"></div>
+      </section>
+    </main>
+    <nav>
+      <button class="active" data-tab="battle"><span class="ico">⚔</span>戰鬥</button>
+      <button data-tab="bag"><span class="ico">🎒</span>背包</button>
+      <button data-tab="enhance"><span class="ico">🔨</span>強化</button>
+      <button data-tab="shop"><span class="ico">🏛</span>商店</button>
+    </nav>
+    <div id="modal"></div>
+    <div id="intro"></div>
+    <div id="toast"></div>
+  </div>
+  <script>
+  (function () {
+    'use strict';
+
+    var SAVE_KEY = 'shenyuan-duobao-v1';
+    var WAVES_PER_STAGE = 6;
+    var INV_MAX = Infinity;
+    var BAG_PAGE = 40;
+    var ATK_CD = 320;
+
+    var RARITY = {
+      common: { id: 'common', name: '普通', color: '#c8c4bc', cls: 'r-common', log: '', w: 58, mult: 1 },
+      rare: { id: 'rare', name: '稀有', color: '#4ea3ff', cls: 'r-rare', log: 'rare', w: 26, mult: 1.85 },
+      epic: { id: 'epic', name: '史詩', color: '#c46bff', cls: 'r-epic', log: 'epic', w: 12, mult: 3.1 },
+      legendary: { id: 'legendary', name: '傳說', color: '#ffb14a', cls: 'r-legend', log: 'legend', w: 4, mult: 5.2 }
+    };
+
+    var MOBS = [
+      { name: '黏液史萊姆', emoji: '🟢', min: 1 },
+      { name: '洞穴蝙蝠', emoji: '🦇', min: 1 },
+      { name: '森林野狼', emoji: '🐺', min: 1 },
+      { name: '哥布林盜賊', emoji: '👺', min: 1 },
+      { name: '骷髏兵', emoji: '💀', min: 2 },
+      { name: '毒棘蜘蛛', emoji: '🕷️', min: 2 },
+      { name: '腐屍行者', emoji: '🧟', min: 3 },
+      { name: '幽冥鬼影', emoji: '👻', min: 3 },
+      { name: '火焰小鬼', emoji: '🔥', min: 4 },
+      { name: '石膚魔像', emoji: '🗿', min: 5 },
+      { name: '深淵觸手', emoji: '🐙', min: 6 },
+      { name: '暗影刺客', emoji: '🥷', min: 7 },
+      { name: '冰霜巫師', emoji: '🧙', min: 8 },
+      { name: '煉獄惡犬', emoji: '🐕', min: 9 },
+      { name: '虛空眼球', emoji: '👁️', min: 10 }
+    ];
+
+    var BOSSES = [
+      { name: '哥布林首領', emoji: '👺' },
+      { name: '白骨將軍', emoji: '💀' },
+      { name: '血月狼王', emoji: '🐺' },
+      { name: '腐蝕巨龍', emoji: '🐉' },
+      { name: '深淵魔王', emoji: '😈' },
+      { name: '遠古石像', emoji: '🗿' },
+      { name: '煉獄惡魔', emoji: '👿' },
+      { name: '混沌巨獸', emoji: '🦑' }
+    ];
+
+    var WPN_BASE = ['短劍', '長劍', '戰斧', '矛槍', '匕首', '法杖', '戰錘', '彎刀'];
+    var ARM_BASE = ['布袍', '皮甲', '鎖子甲', '板甲', '斗篷', '鱗甲', '護胸', '重鎧'];
+    var SLOT_DEFS = [
+      { id: 'weapon', name: '武器', ico: '🗡️', main: 'atk' },
+      { id: 'helm', name: '頭盔', ico: '⛑️', main: 'def' },
+      { id: 'armor', name: '鎧甲', ico: '🛡️', main: 'def' },
+      { id: 'necklace', name: '項鍊', ico: '📿', main: 'atk' },
+      { id: 'gloves', name: '手套', ico: '🧤', main: 'atk' },
+      { id: 'legs', name: '護腿', ico: '🦵', main: 'def' },
+      { id: 'boots', name: '鞋子', ico: '👢', main: 'def' },
+      { id: 'underwear', name: '內衣', ico: '🎽', main: 'hp' }
+    ];
+    var SLOT_BASES = {
+      weapon: WPN_BASE,
+      helm: ['布帽', '皮盔', '鐵盔', '羽冠', '戰盔', '龍盔', '魔冠', '聖盔'],
+      armor: ARM_BASE,
+      necklace: ['木墜', '銅鍊', '銀鍊', '魔晶項鍊', '聖符', '龍牙墜', '月光鍊', '深淵墜'],
+      gloves: ['布手套', '皮護手', '鐵拳套', '鱗護手', '符文手套', '龍鱗手套', '鬥士拳套', '秘織手套'],
+      legs: ['布褲', '皮護腿', '鐵脛甲', '鱗護腿', '戰脛', '龍骨護腿', '秘紋護腿', '聖脛'],
+      boots: ['布靴', '皮靴', '鐵靴', '疾風鞋', '鱗靴', '龍皮靴', '秘法靴', '戰靴'],
+      underwear: ['布內衣', '絲綢內衣', '皮裏衣', '符文內衣', '秘織內衣', '龍絲內衣', '聖紋內衣', '深淵內衣']
+    };
+    var GEMS = {
+      bless: { id: 'bless', name: '祝福寶石', ico: '💎', color: '#7ecbff' },
+      soul: { id: 'soul', name: '靈魂寶石', ico: '🔮', color: '#c46bff' },
+      life: { id: 'life', name: '生命寶石', ico: '❤️', color: '#ff6b8a' }
+    };
+    var PREFIX = {
+      common: ['粗糙的', '老舊的', '普通的', '生鏽的'],
+      rare: ['精鋼的', '符文的', '鑲銀的', '疾風的'],
+      epic: ['魔晶的', '暗影的', '聖光的', '龍骨的'],
+      legendary: ['傳說的', '神鑄的', '深淵的', '不滅的']
+    };
+
+    function emptyEq() {
+      return { weapon: null, helm: null, armor: null, necklace: null, gloves: null, legs: null, boots: null, underwear: null };
+    }
+    function emptyGems() {
+      return { bless: 0, soul: 0, life: 0 };
+    }
+
+    function defaultState() {
+      return {
+        level: 1,
+        exp: 0,
+        coins: 0,
+        hp: 100,
+        baseMaxHp: 100,
+        baseAtk: 10,
+        baseDef: 3,
+        weaponPlus: 0,
+        armorPlus: 0,
+        autoLv: 0,
+        hpBoost: 0,
+        stage: 1,
+        wave: 1,
+        inv: [],
+        eq: emptyEq(),
+        gems: emptyGems(),
+        eqW: null,
+        eqA: null,
+        mute: false,
+        seenIntro: false,
+        uid: 1,
+        kills: 0,
+        bossKills: 0,
+        trainMode: 'auto'
+      };
+    }
+
+    var S = defaultState();
+    var monster = null;
+    var logs = [];
+    var lastAtk = 0;
+    var monTimer = 0;
+    var autoTimer = 0;
+    var particles = [];
+    var floats = [];
+    var combatLock = false;
+    var tab = 'battle';
+    var audioCtx = null;
+    var toastTimer = 0;
+    var lastSeen = 0;
+    var lastAutoFx = 0;
+    var saveTimer = 0;
+    var hiddenCombat = false;
+    var OFFLINE_CAP = 24 * 60 * 60 * 1000;
+    var OFFLINE_POPUP_MIN = 30 * 1000;
+    var OFFLINE_APPLY_MIN = 2000;
+    var BASE_OFFLINE_INTERVAL = 6000;
+
+    var el = {};
+    function cacheEls() {
+      var ids = [
+        'stage-label','wave-label','coins','lv','stat-atk','stat-def',
+        'hp-fill','hp-text','exp-fill','exp-text','stat-crit','arena','fx','monster-wrap',
+        'monster-emoji','monster-name','mhp-bar','mhp-fill','mhp-text','banner',
+        'log','btn-attack','auto-status','bag-body','enhance-body','shop-body',
+        'modal','intro','toast','btn-mute','btn-reset','btn-save','save-status','mode-toggle','mode-hint','file-import'
+      ];
+      ids.forEach(function (id) { el[id] = document.getElementById(id); });
+    }
+
+    function expNeed(lv) {
+      return Math.floor(18 + lv * 14 + lv * lv * 2.2);
+    }
+
+    function slotInfo(id) {
+      for (var i = 0; i < SLOT_DEFS.length; i++) if (SLOT_DEFS[i].id === id) return SLOT_DEFS[i];
+      return null;
+    }
+    function itemSlot(g) {
+      if (!g) return 'weapon';
+      if (g.slot && slotInfo(g.slot)) return g.slot;
+      if (g.type === 'weapon') return 'weapon';
+      if (g.type === 'armor') return 'armor';
+      if (g.type && slotInfo(g.type)) return g.type;
+      return 'weapon';
+    }
+    function findItem(id) {
+      for (var i = 0; i < S.inv.length; i++) if (S.inv[i].id === id) return S.inv[i];
+      return null;
+    }
+    function getEq(slot) {
+      if (!S.eq) S.eq = emptyEq();
+      var id = S.eq[slot];
+      if (!id && slot === 'weapon') id = S.eqW;
+      if (!id && slot === 'armor') id = S.eqA;
+      if (!id) return null;
+      return findItem(id);
+    }
+    function plusAtk(g) {
+      var p = g.plus || 0, s = itemSlot(g);
+      if (s === 'weapon') return p * 2;
+      if (s === 'necklace' || s === 'gloves') return p;
+      return 0;
+    }
+    function plusDef(g) {
+      var p = g.plus || 0, s = itemSlot(g);
+      if (s === 'armor') return p * 2;
+      if (s === 'helm' || s === 'legs' || s === 'boots' || s === 'gloves' || s === 'underwear') return p;
+      return 0;
+    }
+    function plusHp(g) {
+      var p = g.plus || 0, s = itemSlot(g);
+      if (s === 'armor') return p * 6;
+      if (s === 'helm') return p * 4;
+      if (s === 'legs') return p * 5;
+      if (s === 'boots') return p * 3;
+      if (s === 'underwear') return p * 8;
+      return 0;
+    }
+    function plusCrit(g) {
+      return itemSlot(g) === 'necklace' ? (g.plus || 0) * 0.005 : 0;
+    }
+    function lifeBonus(g) {
+      var n = g.life || 0;
+      var main = (slotInfo(itemSlot(g)) || {}).main;
+      if (main === 'atk') return { atk: n, def: 0, hp: 0, crit: 0 };
+      if (main === 'def') return { atk: 0, def: n, hp: 0, crit: 0 };
+      return { atk: 0, def: 0, hp: n * 8, crit: 0 };
+    }
+    function effectiveAtk(g) { return (g.atk || 0) + plusAtk(g) + lifeBonus(g).atk; }
+    function effectiveDef(g) { return (g.def || 0) + plusDef(g) + lifeBonus(g).def; }
+    function effectiveHp(g) { return (g.hp || 0) + plusHp(g) + lifeBonus(g).hp; }
+    function effectiveCrit(g) { return (g.crit || 0) + plusCrit(g) + lifeBonus(g).crit; }
+    function sumEq(fn) {
+      var t = 0;
+      for (var i = 0; i < SLOT_DEFS.length; i++) {
+        var g = getEq(SLOT_DEFS[i].id);
+        if (g) t += fn(g);
+      }
+      return t;
+    }
+    function playerAtk() {
+      return S.baseAtk + (S.level - 1) + sumEq(effectiveAtk);
+    }
+    function playerDef() {
+      return S.baseDef + Math.floor((S.level - 1) / 2) + sumEq(effectiveDef);
+    }
+    function playerMaxHp() {
+      return S.baseMaxHp + (S.level - 1) * 12 + S.hpBoost * 20 + sumEq(effectiveHp);
+    }
+    function playerCritRate(manual) {
+      var base = manual ? 0.18 : 0.1;
+      return Math.min(0.75, base + sumEq(effectiveCrit));
+    }
+
+    function clampHp() {
+      var m = playerMaxHp();
+      if (S.hp > m) S.hp = m;
+    }
+
+    function nextPlusRate(nextLv) {
+      if (nextLv <= 6) return 1;
+      if (nextLv === 7) return 0.5;
+      if (nextLv === 8) return 0.3;
+      if (nextLv === 9) return 0.2;
+      if (nextLv === 10) return 0.15;
+      if (nextLv === 11) return 0.1;
+      if (nextLv === 12) return 0.05;
+      return 0;
+    }
+    function gemCount(kind) {
+      if (!S.gems) S.gems = emptyGems();
+      return S.gems[kind] || 0;
+    }
+    function addGem(kind, n) {
+      if (!S.gems) S.gems = emptyGems();
+      if (!GEMS[kind]) return 0;
+      S.gems[kind] = (S.gems[kind] || 0) + (n || 1);
+      return S.gems[kind];
+    }
+
+    function autoInterval() {
+      if (S.autoLv <= 0) return 0;
+      return [0, 150, 115, 90, 70, 52][S.autoLv] || 52;
+    }
+    function autoUpgradeCost() {
+      return [0, 180, 280, 450, 700, 1100][S.autoLv + 1] || 0;
+    }
+
+    function potSmallCost() { return 20 + S.stage * 2; }
+    function potBigCost() { return 55 + S.stage * 5; }
+    function hpBoostCost() { return 80 + S.hpBoost * 70; }
+
+    function pickRarity(stage, isBoss) {
+      var luck = Math.min(12, stage * 0.6) + (isBoss ? 10 : 0);
+      var bag = [
+        ['common', Math.max(8, RARITY.common.w - luck)],
+        ['rare', RARITY.rare.w + luck * 0.35],
+        ['epic', RARITY.epic.w + luck * 0.25],
+        ['legendary', RARITY.legendary.w + luck * 0.12]
+      ];
+      var tot = 0;
+      for (var i = 0; i < bag.length; i++) tot += bag[i][1];
+      var r = Math.random() * tot;
+      for (var j = 0; j < bag.length; j++) {
+        r -= bag[j][1];
+        if (r <= 0) return bag[j][0];
+      }
+      return 'common';
+    }
+
+    function pickSlotId() {
+      return SLOT_DEFS[Math.floor(Math.random() * SLOT_DEFS.length)].id;
+    }
+
+    function makeGear(stage, isBoss, slot) {
+      var rid = pickRarity(stage, isBoss);
+      var R = RARITY[rid];
+      var sid = slot && slotInfo(slot) ? slot : pickSlotId();
+      var info = slotInfo(sid);
+      var bases = SLOT_BASES[sid] || WPN_BASE;
+      var pre = PREFIX[rid][Math.floor(Math.random() * PREFIX[rid].length)];
+      var base = bases[Math.floor(Math.random() * bases.length)];
+      var roll = 0.82 + Math.random() * 0.36;
+      var core = (3 + stage * 1.7) * R.mult * roll;
+      var item = {
+        id: S.uid++,
+        type: sid,
+        slot: sid,
+        rarity: rid,
+        name: pre + base,
+        atk: 0, def: 0, hp: 0, crit: 0,
+        plus: 0,
+        life: 0,
+        stage: stage
+      };
+      if (sid === 'weapon') {
+        item.atk = Math.max(1, Math.round(core));
+      } else if (sid === 'helm') {
+        item.def = Math.max(1, Math.round(core * 0.55));
+        item.hp = Math.max(0, Math.round(core * 1.2));
+      } else if (sid === 'armor') {
+        item.def = Math.max(1, Math.round(core * 0.72));
+        item.hp = Math.max(0, Math.round(core * 2.2));
+      } else if (sid === 'necklace') {
+        item.atk = Math.max(1, Math.round(core * 0.45));
+        item.crit = Math.round((0.02 + R.mult * 0.008 + roll * 0.02) * 1000) / 1000;
+      } else if (sid === 'gloves') {
+        item.atk = Math.max(1, Math.round(core * 0.4));
+        item.def = Math.max(0, Math.round(core * 0.2));
+      } else if (sid === 'legs') {
+        item.def = Math.max(1, Math.round(core * 0.6));
+        item.hp = Math.max(0, Math.round(core * 1.6));
+      } else if (sid === 'boots') {
+        item.def = Math.max(1, Math.round(core * 0.45));
+        item.hp = Math.max(0, Math.round(core * 1.0));
+      } else {
+        item.hp = Math.max(4, Math.round(core * 2.8));
+        item.def = Math.max(0, Math.round(core * 0.15));
+      }
+      return item;
+    }
+
+    function monAtkInterval(stage) {
+      var stg = stage == null ? S.stage : stage;
+      return Math.max(850, 2300 - stg * 45);
+    }
+
+    function monsterStats(stage, isBoss, randomize) {
+      var mul = isBoss ? 3.15 : 1;
+      var hp = Math.round((30 + stage * 15) * mul);
+      var atk = Math.round((5 + stage * 2.15) * (isBoss ? 1.85 : 1));
+      var def = Math.round(stage * 0.65 * (isBoss ? 1.45 : 1));
+      var coinMul = randomize ? (0.85 + Math.random() * 0.35) : 1;
+      var coins = Math.round((7 + stage * 4) * (isBoss ? 4.2 : 1) * coinMul);
+      var exp = Math.round((10 + stage * 6) * (isBoss ? 3.4 : 1));
+      return { hp: hp, atk: atk, def: def, coins: coins, exp: exp };
+    }
+
+    function avgDamage(atk, def) {
+      var raw = atk - def * 0.55;
+      var dmg = Math.max(1, raw);
+      return dmg * 1.065;
+    }
+
+    function spawnMonster(silent) {
+      var isBoss = S.wave === WAVES_PER_STAGE;
+      var tpl;
+      if (isBoss) {
+        tpl = BOSSES[(S.stage - 1) % BOSSES.length];
+      } else {
+        var pool = MOBS.filter(function (m) { return S.stage >= m.min; });
+        if (!pool.length) pool = MOBS.slice(0, 4);
+        tpl = pool[Math.floor(Math.random() * pool.length)];
+      }
+      var st = monsterStats(S.stage, isBoss, true);
+      monster = {
+        name: isBoss ? ('首領・' + tpl.name) : tpl.name,
+        emoji: tpl.emoji,
+        isBoss: isBoss,
+        hp: st.hp,
+        maxHp: st.hp,
+        atk: st.atk,
+        def: st.def,
+        coins: st.coins,
+        exp: st.exp
+      };
+      monTimer = 0;
+      var wrap = el['monster-wrap'];
+      wrap.classList.remove('die', 'hit');
+      wrap.classList.toggle('boss', isBoss);
+      el['mhp-bar'].classList.toggle('boss', isBoss);
+      el['monster-emoji'].textContent = monster.emoji;
+      el['monster-name'].textContent = monster.name;
+      if (isBoss && !silent) {
+        showBanner('⚠ 首領降臨 ⚠');
+        log('第 ' + S.stage + ' 層首領出現了！「' + tpl.name + '」', 'bad');
+        sfx('boss');
+      }
+      renderMonsterBar();
+    }
+
+    function renderMonsterBar() {
+      if (!monster) return;
+      var pct = Math.max(0, monster.hp / monster.maxHp * 100);
+      el['mhp-fill'].style.width = pct + '%';
+      el['mhp-text'].textContent = Math.max(0, Math.ceil(monster.hp)) + ' / ' + monster.maxHp;
+    }
+
+    function calcDmg(atk, def, critMul) {
+      var raw = atk * (0.86 + Math.random() * 0.28) - def * 0.55;
+      var dmg = Math.max(1, Math.round(raw));
+      if (critMul) dmg = Math.max(2, Math.round(dmg * 1.65));
+      return dmg;
+    }
+
+    function playSilentUnlock() {
+      if (!audioCtx) return;
+      try {
+        var n = Math.max(1, Math.floor((audioCtx.sampleRate || 22050) * 0.02));
+        var buf = audioCtx.createBuffer(1, n, audioCtx.sampleRate || 22050);
+        var src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        var g = audioCtx.createGain();
+        g.gain.value = 0.00001;
+        src.connect(g);
+        g.connect(audioCtx.destination);
+        src.start(0);
+      } catch (e) {}
+    }
+
+    function unlockAudio() {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      try {
+        if (audioCtx && audioCtx.state === 'closed') audioCtx = null;
+        if (!audioCtx) audioCtx = new Ctx();
+      } catch (e) {
+        audioCtx = null;
+        return;
+      }
+      function afterResume(ok) {
+        if (!ok || !audioCtx || audioCtx.state === 'closed') {
+          try { audioCtx = new Ctx(); } catch (e) { audioCtx = null; return; }
+        }
+        playSilentUnlock();
+      }
+      var st = audioCtx && audioCtx.state;
+      if (st === 'suspended' || st === 'interrupted') {
+        try {
+          var p = audioCtx.resume();
+          if (p && typeof p.then === 'function') {
+            p.then(function () { afterResume(audioCtx && audioCtx.state !== 'closed'); })
+             .catch(function () { afterResume(false); });
+          } else {
+            afterResume(true);
+          }
+        } catch (e) {
+          afterResume(false);
+        }
+      } else {
+        playSilentUnlock();
+      }
+    }
+
+    function ensureAudio() {
+      unlockAudio();
+    }
+
+    function beep(freq, dur, type, vol, delay, slide) {
+      if (S.mute) return;
+      if (!audioCtx || audioCtx.state === 'closed') return;
+      try {
+        var t = audioCtx.currentTime + (delay || 0);
+        var o = audioCtx.createOscillator();
+        var g = audioCtx.createGain();
+        o.type = type || 'square';
+        o.frequency.setValueAtTime(freq, t);
+        if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, slide), t + dur);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol || 0.08, t + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(t); o.stop(t + dur + 0.02);
+      } catch (e) {}
+    }
+
+    var sfxLog = [];
+    function sfx(kind) {
+      sfxLog.push(kind);
+      if (sfxLog.length > 120) sfxLog = sfxLog.slice(-80);
+      if (S.mute) return;
+      ensureAudio();
+      if (!audioCtx) return;
+      if (kind === 'hit') { beep(220, 0.08, 'square', 0.06); beep(140, 0.1, 'sawtooth', 0.04, 0.02); }
+      else if (kind === 'crit') { beep(520, 0.1, 'square', 0.07); beep(780, 0.12, 'square', 0.05, 0.05); }
+      else if (kind === 'hurt') { beep(160, 0.14, 'sawtooth', 0.07, 0, 80); }
+      else if (kind === 'coin') { beep(880, 0.08, 'sine', 0.06); beep(1320, 0.1, 'sine', 0.05, 0.06); }
+      else if (kind === 'dead') { beep(200, 0.2, 'sawtooth', 0.08, 0, 60); }
+      else if (kind === 'win') { beep(523, 0.1, 'square', 0.06); beep(659, 0.1, 'square', 0.06, 0.08); beep(784, 0.16, 'square', 0.07, 0.16); }
+      else if (kind === 'lv') { beep(392, 0.1, 'square', 0.06); beep(523, 0.1, 'square', 0.06, 0.1); beep(659, 0.12, 'square', 0.07, 0.2); beep(784, 0.2, 'square', 0.07, 0.32); }
+      else if (kind === 'ok') { beep(660, 0.1, 'triangle', 0.07); beep(990, 0.14, 'triangle', 0.06, 0.08); }
+      else if (kind === 'fail') { beep(200, 0.16, 'sawtooth', 0.07, 0, 90); }
+      else if (kind === 'boss') { beep(80, 0.3, 'sawtooth', 0.08); beep(120, 0.25, 'square', 0.05, 0.08); }
+      else if (kind === 'drop') { beep(740, 0.1, 'sine', 0.07); beep(980, 0.14, 'sine', 0.06, 0.08); }
+      else if (kind === 'chime') {
+        beep(1568, 0.07, 'sine', 0.08);
+        beep(2093, 0.11, 'sine', 0.07, 0.05);
+        beep(2637, 0.16, 'triangle', 0.05, 0.1);
+      }
+    }
+
+    function log(msg, cls) {
+      logs.unshift({ msg: msg, cls: cls || '' });
+      if (logs.length > 20) logs.pop();
+      renderLog();
+    }
+
+    function renderLog() {
+      var html = '';
+      for (var i = 0; i < Math.min(3, logs.length); i++) {
+        html += '<div class="' + logs[i].cls + '">' + logs[i].msg + '</div>';
+      }
+      el.log.innerHTML = html;
+    }
+
+    function toast(msg) {
+      el.toast.textContent = msg;
+      el.toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { el.toast.classList.remove('show'); }, 1400);
+    }
+
+    function showBanner(text) {
+      el.banner.textContent = text;
+      el.banner.classList.add('show');
+      setTimeout(function () { el.banner.classList.remove('show'); }, 1800);
+    }
+
+    function floatText(text, color, crit, xRatio) {
+      var arena = el.arena;
+      if (!arena) return;
+      if (arena.querySelectorAll('.dmg-float').length >= 8) return;
+      var rec = arena.getBoundingClientRect();
+      var d = document.createElement('div');
+      d.className = 'dmg-float' + (crit ? ' crit' : '') + (color === '#6ee09a' ? ' heal' : '');
+      d.textContent = text;
+      d.style.color = color || '#fff';
+      var xr = xRatio == null ? (0.38 + Math.random() * 0.24) : xRatio;
+      d.style.left = (xr * rec.width) + 'px';
+      d.style.top = (rec.height * 0.32) + 'px';
+      arena.appendChild(d);
+      setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 900);
+    }
+
+    function burst(x, y, color, n) {
+      for (var i = 0; i < (n || 10); i++) {
+        var a = Math.random() * Math.PI * 2;
+        var sp = 40 + Math.random() * 140;
+        particles.push({
+          x: x, y: y,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp - 40,
+          life: 0.35 + Math.random() * 0.35,
+          max: 0.5,
+          r: 1.5 + Math.random() * 2.5,
+          color: color
+        });
+      }
+    }
+
+    var COOKIE_KEY = 'sydb_v1';
+    var IDB_NAME = 'shenyuan-duobao-db';
+    var IDB_STORE = 'saves';
+    var SAVE_PREFIX = 'SYD1.';
+    var storageInfo = { ok: false, backends: [], lastOk: 0, error: '' };
+    var bagSort = 'power';
+    var bagFilter = 'all';
+    var bagShown = BAG_PAGE;
+    var enhSlot = 'weapon';
+
+    function buildPayload() {
+      if (!lastSeen) lastSeen = Date.now();
+      return { v: 1, S: S, monster: monster, lastSeen: lastSeen, savedAt: Date.now() };
+    }
+
+    function payloadRaw() {
+      return JSON.stringify(buildPayload());
+    }
+
+    function parseSaveRaw(raw) {
+      if (!raw || typeof raw !== 'string') return null;
+      var s = raw.trim();
+      try {
+        if (s.indexOf(SAVE_PREFIX) === 0) {
+          s = decodeURIComponent(escape(atob(s.slice(SAVE_PREFIX.length))));
+        } else {
+          var mark = s.indexOf('{');
+          if (mark > 0 && mark < 80) s = s.slice(mark);
+        }
+        var data = JSON.parse(s);
+        if (!data || !data.S || data.S.level < 1) return null;
+        return data;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function migrateItem(g) {
+      if (!g || typeof g !== 'object') return g;
+      if (!g.slot) {
+        if (g.type === 'weapon') g.slot = 'weapon';
+        else if (g.type === 'armor') g.slot = 'armor';
+        else if (g.type && slotInfo(g.type)) g.slot = g.type;
+        else g.slot = 'weapon';
+      }
+      if (!slotInfo(g.slot)) g.slot = (g.type === 'armor') ? 'armor' : 'weapon';
+      g.type = g.slot;
+      if (g.plus == null || g.plus < 0) g.plus = 0;
+      if (g.plus > 12) g.plus = 12;
+      if (g.life == null || g.life < 0) g.life = 0;
+      if (g.life > 4) g.life = 4;
+      if (g.atk == null) g.atk = 0;
+      if (g.def == null) g.def = 0;
+      if (g.hp == null) g.hp = 0;
+      if (g.crit == null) g.crit = 0;
+      return g;
+    }
+    function bestInSlot(slot) {
+      var best = null, bp = -1;
+      for (var i = 0; i < S.inv.length; i++) {
+        var g = S.inv[i];
+        if (itemSlot(g) !== slot) continue;
+        var pw = itemPower(g);
+        if (pw > bp) { bp = pw; best = g; }
+      }
+      return best;
+    }
+    function applyLegacyPlus(slot, plus, fallbackName, stats) {
+      plus = Math.max(0, Math.min(12, plus || 0));
+      if (plus <= 0) return;
+      if (!S.eq) S.eq = emptyEq();
+      var item = getEq(slot) || bestInSlot(slot);
+      if (!item) {
+        item = {
+          id: S.uid++,
+          type: slot,
+          slot: slot,
+          rarity: 'common',
+          name: fallbackName,
+          atk: stats.atk || 0,
+          def: stats.def || 0,
+          hp: stats.hp || 0,
+          crit: 0,
+          plus: plus,
+          life: 0,
+          stage: Math.max(1, S.stage || 1)
+        };
+        S.inv.push(item);
+        S.eq[slot] = item.id;
+      } else {
+        item.plus = Math.max(item.plus || 0, plus);
+        if (!S.eq[slot]) S.eq[slot] = item.id;
+      }
+    }
+    function normalizeUid() {
+      var m = S.uid || 1;
+      for (var i = 0; i < S.inv.length; i++) {
+        if (S.inv[i] && S.inv[i].id >= m) m = S.inv[i].id + 1;
+      }
+      S.uid = m;
+    }
+    function migrateState() {
+      if (!Array.isArray(S.inv)) S.inv = [];
+      if (!S.gems || typeof S.gems !== 'object') S.gems = emptyGems();
+      S.gems.bless = Math.max(0, S.gems.bless || 0);
+      S.gems.soul = Math.max(0, S.gems.soul || 0);
+      S.gems.life = Math.max(0, S.gems.life || 0);
+      var eq = emptyEq();
+      if (S.eq && typeof S.eq === 'object') {
+        for (var k in eq) if (S.eq[k]) eq[k] = S.eq[k];
+      }
+      if (S.eqW && !eq.weapon) eq.weapon = S.eqW;
+      if (S.eqA && !eq.armor) eq.armor = S.eqA;
+      S.eq = eq;
+      for (var i = 0; i < S.inv.length; i++) migrateItem(S.inv[i]);
+      applyLegacyPlus('weapon', S.weaponPlus, '傳承短劍', { atk: 5, def: 0, hp: 0 });
+      applyLegacyPlus('armor', S.armorPlus, '傳承鎧甲', { atk: 0, def: 3, hp: 12 });
+      S.weaponPlus = 0;
+      S.armorPlus = 0;
+      S.eqW = S.eq.weapon || null;
+      S.eqA = S.eq.armor || null;
+      normalizeUid();
+    }
+
+    function applyPayload(data) {
+      var d = defaultState();
+      for (var k in d) if (Object.prototype.hasOwnProperty.call(data.S, k)) d[k] = data.S[k];
+      if (d.trainMode !== 'manual') d.trainMode = 'auto';
+      d.mute = d.mute === true;
+      S = d;
+      if (S.hp == null || S.level < 1) return false;
+      migrateState();
+      clampHp();
+      if (data.monster && data.monster.maxHp) monster = data.monster;
+      else monster = null;
+      var ls = data.lastSeen;
+      if (ls == null && data.S) ls = data.S.lastSeen;
+      if (typeof ls === 'number' && ls > 0 && ls < Date.now() + 60000) lastSeen = ls;
+      else lastSeen = Date.now();
+      return true;
+    }
+
+    function writeLocalStorage(raw) {
+      try {
+        localStorage.setItem(SAVE_KEY, raw);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function readLocalStorage() {
+      try { return localStorage.getItem(SAVE_KEY); }
+      catch (e) { return null; }
+    }
+
+    function writeCookie(raw) {
+      if (!raw || raw.length > 3500) return false;
+      try {
+        document.cookie = COOKIE_KEY + '=' + encodeURIComponent(raw) +
+          '; path=/; max-age=31536000; SameSite=Lax';
+        return document.cookie.indexOf(COOKIE_KEY + '=') !== -1;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function readCookie() {
+      try {
+        var all = document.cookie ? document.cookie.split(';') : [];
+        for (var i = 0; i < all.length; i++) {
+          var p = all[i].trim();
+          if (p.indexOf(COOKIE_KEY + '=') === 0) {
+            return decodeURIComponent(p.slice(COOKIE_KEY.length + 1));
+          }
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    function clearCookie() {
+      try { document.cookie = COOKIE_KEY + '=; path=/; max-age=0'; } catch (e) {}
+    }
+
+    function idbOpen() {
+      return new Promise(function (resolve, reject) {
+        if (!window.indexedDB) { reject(new Error('no idb')); return; }
+        var req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = function () {
+          var db = req.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error || new Error('idb')); };
+      });
+    }
+
+    function idbPut(raw) {
+      return idbOpen().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          var tx = db.transaction(IDB_STORE, 'readwrite');
+          tx.objectStore(IDB_STORE).put(raw, 'main');
+          tx.oncomplete = function () { try { db.close(); } catch (e) {} resolve(true); };
+          tx.onerror = function () { try { db.close(); } catch (e) {} reject(tx.error); };
+        });
+      });
+    }
+
+    function idbGet() {
+      return idbOpen().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          var tx = db.transaction(IDB_STORE, 'readonly');
+          var req = tx.objectStore(IDB_STORE).get('main');
+          req.onsuccess = function () { try { db.close(); } catch (e) {} resolve(req.result || null); };
+          req.onerror = function () { try { db.close(); } catch (e) {} reject(req.error); };
+        });
+      });
+    }
+
+    function idbDel() {
+      return idbOpen().then(function (db) {
+        return new Promise(function (resolve) {
+          var tx = db.transaction(IDB_STORE, 'readwrite');
+          tx.objectStore(IDB_STORE).delete('main');
+          tx.oncomplete = function () { try { db.close(); } catch (e) {} resolve(); };
+          tx.onerror = function () { try { db.close(); } catch (e) {} resolve(); };
+        });
+      }).catch(function () {});
+    }
+
+    function updateSaveStatus() {
+      var node = el['save-status'];
+      if (!node) return;
+      if (!storageInfo.ok) {
+        node.className = 'save-status bad';
+        node.textContent = '此環境無法存檔';
+        node.title = '瀏覽器無法保留進度。請用右上角 💾 匯出存檔，換檔開啟時再匯入。';
+        return;
+      }
+      node.className = 'save-status ok';
+      var hm = formatHm(storageInfo.lastOk || Date.now());
+      node.textContent = '已存檔 ' + hm;
+      node.title = '已寫入：' + (storageInfo.backends.join('、') || '本機') + '。若你重新下載遊戲檔，請先匯出存檔。';
+    }
+
+    function formatHm(ts) {
+      var d = new Date(ts);
+      function pad(n) { return (n < 10 ? '0' : '') + n; }
+      return pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+
+    function save() {
+      var raw;
+      try { raw = payloadRaw(); }
+      catch (e) { storageInfo.ok = false; storageInfo.error = String(e); updateSaveStatus(); return false; }
+      var backends = [];
+      if (writeLocalStorage(raw)) backends.push('本機');
+      if (writeCookie(raw)) backends.push('Cookie');
+      idbPut(raw).then(function () {
+        if (storageInfo.backends.indexOf('IndexedDB') === -1) storageInfo.backends.push('IndexedDB');
+        storageInfo.ok = true;
+        storageInfo.lastOk = Date.now();
+        updateSaveStatus();
+      }).catch(function () {
+        updateSaveStatus();
+      });
+      storageInfo.ok = backends.length > 0;
+      storageInfo.backends = backends;
+      storageInfo.lastOk = Date.now();
+      storageInfo.error = storageInfo.ok ? '' : 'storage-unavailable';
+      updateSaveStatus();
+      return storageInfo.ok;
+    }
+
+    function stampAndSave() {
+      lastSeen = Date.now();
+      return save();
+    }
+
+    function pickNewest(raws) {
+      var best = null, bestAt = -1;
+      for (var i = 0; i < raws.length; i++) {
+        var data = parseSaveRaw(raws[i]);
+        if (!data) continue;
+        var at = data.savedAt || data.lastSeen || 0;
+        if (at >= bestAt) { bestAt = at; best = data; }
+      }
+      return best;
+    }
+
+    function loadSyncCandidates() {
+      var raws = [];
+      var a = readLocalStorage();
+      if (a) raws.push(a);
+      var b = readCookie();
+      if (b) raws.push(b);
+      return raws;
+    }
+
+    function load() {
+      try {
+        var data = pickNewest(loadSyncCandidates());
+        if (!data) return false;
+        return applyPayload(data);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function loadAll() {
+      return idbGet().then(function (raw) {
+        var raws = loadSyncCandidates();
+        if (raw) raws.push(raw);
+        var data = pickNewest(raws);
+        if (!data) return false;
+        return applyPayload(data);
+      }).catch(function () {
+        return load();
+      });
+    }
+
+    function clearAllStorage() {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      clearCookie();
+      return idbDel();
+    }
+
+    function resetGame() {
+      S = defaultState();
+      S.seenIntro = true;
+      logs = [];
+      particles = [];
+      lastSeen = Date.now();
+      monster = null;
+      spawnMonster();
+      save();
+      renderAll();
+      log('旅程重新開始。', '');
+    }
+
+    function exportCode() {
+      var raw = payloadRaw();
+      try { return SAVE_PREFIX + btoa(unescape(encodeURIComponent(raw))); }
+      catch (e) { return raw; }
+    }
+
+    function downloadSaveFile() {
+      var raw = payloadRaw();
+      var blob = new Blob([raw], { type: 'application/json;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '深淵奪寶-存檔.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        URL.revokeObjectURL(a.href);
+        if (a.parentNode) a.parentNode.removeChild(a);
+      }, 500);
+    }
+
+    function copySaveCode() {
+      var code = exportCode();
+      function fallback() {
+        var ta = document.getElementById('save-code');
+        if (ta) {
+          ta.value = code;
+          ta.focus();
+          ta.select();
+          try { document.execCommand('copy'); } catch (e) {}
+        }
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(code).then(function () { return true; }).catch(function () {
+          fallback();
+          return false;
+        });
+      }
+      fallback();
+      return Promise.resolve(false);
+    }
+
+    function importFromText(text) {
+      var data = parseSaveRaw(text);
+      if (!data || !applyPayload(data)) return false;
+      renderAll();
+      updateModeUI();
+      var report = applyOfflineProgress();
+      if (!monster) spawnMonster();
+      else syncMonsterSprite();
+      save();
+      renderAll();
+      if (report && report.showPopup) showOfflinePopup(report);
+      else log('已匯入存檔。歡迎回來，冒險者。', 'ok');
+      return true;
+    }
+
+    function showSaveModal() {
+      var ok = storageInfo.ok;
+      el.modal.innerHTML = '<div class="modal-card" id="save-card" style="text-align:left">' +
+        '<h3 style="text-align:center">存檔</h3>' +
+        '<p class="save-help">' + (ok
+          ? '目前可在此瀏覽器自動存檔（' + (storageInfo.backends.join('、') || '本機') + '）。'
+          : '此環境無法自動保留進度。') +
+        '若你每次從聊天軟體或網頁重新下載遊戲，瀏覽器會把它當成新檔案，上次進度就讀不到。請先「匯出存檔」，換檔開啟後再匯入。</p>' +
+        '<div class="modal-actions" style="margin-top:0">' +
+        '<button type="button" id="btn-export-copy">複製存檔碼</button>' +
+        '<button type="button" id="btn-export-file">下載存檔檔</button></div>' +
+        '<textarea id="save-code" placeholder="在此貼上存檔碼或 JSON…"></textarea>' +
+        '<div class="modal-actions">' +
+        '<button type="button" class="ghost" id="btn-import-paste">匯入貼上內容</button>' +
+        '<button type="button" class="ghost" id="btn-import-file">選擇檔案</button></div>' +
+        '<div class="modal-actions"><button type="button" class="ghost" id="btn-save-close">關閉</button></div></div>';
+      el.modal.classList.add('show');
+      document.getElementById('btn-export-copy').onclick = function () {
+        copySaveCode().then(function (okc) { toast(okc ? '已複製存檔碼' : '請手動複製存檔碼'); });
+        var ta = document.getElementById('save-code');
+        if (ta && !ta.value) ta.value = exportCode();
+      };
+      document.getElementById('btn-export-file').onclick = function () {
+        downloadSaveFile();
+        toast('已下載存檔檔');
+      };
+      document.getElementById('btn-import-paste').onclick = function () {
+        var ta = document.getElementById('save-code');
+        if (!importFromText(ta && ta.value)) toast('存檔內容無效');
+        else if (!document.getElementById('offline-card')) {
+          el.modal.classList.remove('show');
+          toast('存檔已匯入');
+        }
+      };
+      document.getElementById('btn-import-file').onclick = function () {
+        if (el['file-import']) el['file-import'].click();
+      };
+      document.getElementById('btn-save-close').onclick = function () { el.modal.classList.remove('show'); };
+    }
+
+    function effectiveOfflineMs(ms) {
+      var h = 3600000;
+      if (ms <= 2 * h) return ms;
+      var t = 2 * h;
+      var mid = Math.min(ms - 2 * h, 6 * h);
+      t += mid * 0.5;
+      if (ms > 8 * h) t += (ms - 8 * h) * 0.25;
+      return t;
+    }
+
+    function formatDuration(ms) {
+      var s = Math.max(0, Math.floor(ms / 1000));
+      var h = Math.floor(s / 3600);
+      var m = Math.floor((s % 3600) / 60);
+      var sec = s % 60;
+      if (h > 0) return h + ' 小時 ' + m + ' 分';
+      if (m > 0) return m + ' 分 ' + (sec ? sec + ' 秒' : '');
+      return sec + ' 秒';
+    }
+
+    function fmtNum(n) {
+      return Math.round(n).toLocaleString('zh-TW');
+    }
+
+    function addExp(n, silent) {
+      S.exp += n;
+      var ups = 0;
+      while (S.exp >= expNeed(S.level)) {
+        S.exp -= expNeed(S.level);
+        S.level += 1;
+        ups += 1;
+        S.hp = playerMaxHp();
+      }
+      if (ups && !silent) {
+        sfx('lv');
+        log('升級！現在是 Lv.' + S.level + '，生命與能力提升。', 'ok');
+        toast('升級！Lv.' + S.level);
+        floatText('LEVEL UP', '#f0c75e', true, 0.5);
+      }
+      return ups;
+    }
+
+    function itemPower(g) {
+      if (!g) return 0;
+      var r = RARITY[g.rarity] ? RARITY[g.rarity].mult : 0;
+      return effectiveAtk(g) * 10 + effectiveDef(g) * 12 + effectiveHp(g) * 1.5 +
+        effectiveCrit(g) * 400 + (g.plus || 0) * 3 + (g.life || 0) * 8 + r;
+    }
+
+    function isEquipped(g) {
+      if (!g || !S.eq) return false;
+      for (var k in S.eq) if (S.eq[k] === g.id) return true;
+      return g.id === S.eqW || g.id === S.eqA;
+    }
+
+    function weakerThanEquipped(g) {
+      if (!g) return false;
+      var eq = getEq(itemSlot(g));
+      if (!eq) return false;
+      return itemPower(g) < itemPower(eq) - 0.01;
+    }
+
+    function clearEqId(id) {
+      if (!S.eq) S.eq = emptyEq();
+      for (var k in S.eq) if (S.eq[k] === id) S.eq[k] = null;
+      if (S.eqW === id) S.eqW = null;
+      if (S.eqA === id) S.eqA = null;
+    }
+
+    function takeFromBag(g) {
+      var price = sellPrice(g);
+      clearEqId(g.id);
+      S.inv = S.inv.filter(function (x) { return x.id !== g.id; });
+      S.coins += price;
+      return price;
+    }
+
+    function placeItem(g) {
+      migrateItem(g);
+      S.inv.push(g);
+      return { kept: true, soldCoins: 0, soldN: 0, soldNames: [], item: g };
+    }
+
+    function notifyAutoSell(place, silent) {
+      if (!place || !place.soldN) return;
+      var msg = '自動出售 ' + place.soldN + ' 件較差裝備，+' + place.soldCoins + ' 金幣';
+      if (!silent) {
+        log(msg, 'good');
+        toast(msg);
+      }
+    }
+
+    function isManualFight() {
+      return S.trainMode === 'manual';
+    }
+
+    function gemDropRate(kind, isBoss) {
+      if (kind === 'bless') return isBoss ? 0.28 : 0.10;
+      if (kind === 'soul') return isBoss ? 0.12 : 0.025;
+      if (kind === 'life') return isBoss ? 0.20 : 0.07;
+      return 0;
+    }
+    function rollGemDrops(isBoss, silent, forceKind) {
+      var got = [];
+      var kinds = forceKind ? [forceKind] : ['bless', 'soul', 'life'];
+      for (var i = 0; i < kinds.length; i++) {
+        var kind = kinds[i];
+        if (forceKind || Math.random() < gemDropRate(kind, isBoss)) {
+          addGem(kind, 1);
+          got.push(kind);
+        }
+      }
+      if (got.length && !silent) {
+        var names = got.map(function (k) { return GEMS[k].name; }).join('、');
+        log('掉落寶石：' + names, 'good');
+        sfx('chime');
+      }
+      return got;
+    }
+
+    function tryDrop(isBoss, silent) {
+      var chance = isBoss ? 0.62 : 0.2;
+      if (isManualFight()) chance = Math.min(0.92, chance * 1.5);
+      var place = { item: null, soldCoins: 0, soldN: 0, kept: false, gems: [] };
+      if (Math.random() <= chance) {
+        var g = makeGear(S.stage, isBoss);
+        place = placeItem(g);
+        notifyAutoSell(place, silent);
+        var R = g && RARITY[g.rarity];
+        if (place.kept && !silent) {
+          log('掉落【' + R.name + '】' + g.name + '（' + itemStatText(g, true) + '）', R.log || 'good');
+          sfx('drop');
+        }
+      }
+      place.gems = rollGemDrops(isBoss, silent);
+      return place;
+    }
+
+    function syncMonsterSprite() {
+      if (!monster || !el['monster-wrap']) return;
+      el['monster-wrap'].classList.remove('die', 'hit');
+      el['monster-wrap'].classList.toggle('boss', !!monster.isBoss);
+      el['mhp-bar'].classList.toggle('boss', !!monster.isBoss);
+      el['monster-emoji'].textContent = monster.emoji;
+      el['monster-name'].textContent = monster.name;
+      renderMonsterBar();
+    }
+
+    function tplFor(stage, isBoss) {
+      if (isBoss) return BOSSES[(stage - 1) % BOSSES.length];
+      var pool = MOBS.filter(function (m) { return stage >= m.min; });
+      if (!pool.length) pool = MOBS.slice(0, 4);
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function applyOfflineProgress(forcedElapsed) {
+      var now = Date.now();
+      var elapsed = (forcedElapsed != null) ? forcedElapsed : (lastSeen ? now - lastSeen : 0);
+      if (elapsed < OFFLINE_APPLY_MIN) {
+        lastSeen = now;
+        return null;
+      }
+      var capped = elapsed >= OFFLINE_CAP;
+      var timeLeft = effectiveOfflineMs(Math.min(elapsed, OFFLINE_CAP));
+      var hasAuto = S.autoLv > 0 && S.trainMode !== 'manual';
+      var interval = hasAuto ? autoInterval() : BASE_OFFLINE_INTERVAL;
+      if (!interval) interval = BASE_OFFLINE_INTERVAL;
+
+      var startLevel = S.level;
+      var startStage = S.stage;
+      var startCoins = S.coins;
+      var coinsGained = 0;
+      var expGained = 0;
+      var kills = 0;
+      var bosses = 0;
+      var levelsGained = 0;
+      var drops = [];
+      var bagFull = false;
+      var stuck = false;
+      var gems = emptyGems();
+      var farmed = false;
+      var autoSellCoins = 0;
+
+      if (combatLock && monster && monster.hp <= 0) {
+        combatLock = false;
+        if (monster.isBoss) { S.stage += 1; S.wave = 1; }
+        else S.wave += 1;
+        monster = null;
+      }
+
+      function fightInfo(hp, st, iv, stage) {
+        var pDps = avgDamage(playerAtk(), st.def) / (iv / 1000);
+        var mDps = avgDamage(st.atk, playerDef()) / (monAtkInterval(stage) / 1000);
+        var ttk = hp / Math.max(0.001, pDps);
+        var tdie = playerMaxHp() / Math.max(0.001, mDps);
+        return { pDps: pDps, ttk: ttk, tdie: tdie, can: ttk < tdie * 0.95 };
+      }
+
+      function ensureMonster(isBoss, st, hp) {
+        if (monster && monster.hp > 0) return;
+        var tplS = tplFor(S.stage, isBoss);
+        monster = {
+          name: isBoss ? ('首領・' + tplS.name) : tplS.name,
+          emoji: tplS.emoji, isBoss: isBoss,
+          hp: hp, maxHp: st.hp, atk: st.atk, def: st.def, coins: st.coins, exp: st.exp
+        };
+      }
+
+      function grantOfflineKill(st, isBoss) {
+        coinsGained += st.coins;
+        expGained += st.exp;
+        S.coins += st.coins;
+        levelsGained += addExp(st.exp, true);
+        S.kills += 1;
+        kills += 1;
+        if (isBoss) { S.bossKills += 1; bosses += 1; }
+        var dropRes = tryDrop(isBoss, true);
+        if (dropRes && dropRes.item) drops.push(dropRes.item);
+        if (dropRes && dropRes.soldCoins) autoSellCoins += dropRes.soldCoins;
+        if (dropRes && dropRes.gems) {
+          for (var gi = 0; gi < dropRes.gems.length; gi++) gems[dropRes.gems[gi]] = (gems[dropRes.gems[gi]] || 0) + 1;
+        }
+      }
+
+      var guard = 0;
+      while (timeLeft > 0 && guard++ < 300000) {
+        var isBoss = S.wave === WAVES_PER_STAGE;
+        var st = monsterStats(S.stage, isBoss, false);
+        var hp;
+        if (monster && monster.hp > 0) {
+          hp = monster.hp;
+          st.atk = monster.atk; st.def = monster.def;
+          st.coins = monster.coins; st.exp = monster.exp;
+          st.hp = monster.maxHp || st.hp;
+        } else {
+          hp = st.hp;
+        }
+
+        var ft = fightInfo(hp, st, interval, S.stage);
+        if (ft.can) {
+          stuck = false;
+          var needMs = ft.ttk * 1000;
+          if (needMs > timeLeft) {
+            var dealt = ft.pDps * (timeLeft / 1000);
+            var leftHp = Math.max(1, Math.ceil(hp - dealt));
+            ensureMonster(isBoss, st, leftHp);
+            monster.hp = leftHp;
+            monster.maxHp = st.hp || monster.maxHp || leftHp;
+            timeLeft = 0;
+            break;
+          }
+          timeLeft -= needMs;
+          grantOfflineKill(st, isBoss);
+          if (isBoss) { S.stage += 1; S.wave = 1; }
+          else S.wave += 1;
+          monster = null;
+          continue;
+        }
+
+        stuck = true;
+        ensureMonster(isBoss, st, hp);
+        var farmStage = isBoss ? S.stage : Math.max(1, S.stage - 1);
+        var farm = monsterStats(farmStage, false, false);
+        var farmIv = Math.max(interval * 3, 800);
+        var ff = fightInfo(farm.hp, farm, farmIv, farmStage);
+        if (!ff.can) break;
+        farmed = true;
+        if (ff.ttk * 1000 > timeLeft) {
+          timeLeft = 0;
+          break;
+        }
+        timeLeft -= ff.ttk * 1000;
+        farm.coins = Math.max(1, Math.round(farm.coins * 0.5));
+        farm.exp = Math.max(1, Math.round(farm.exp * 0.25));
+        grantOfflineKill(farm, false);
+      }
+
+      if (!monster) spawnMonster(true);
+      else syncMonsterSprite();
+
+      lastSeen = now;
+      save();
+
+      var report = {
+        elapsed: elapsed,
+        applied: effectiveOfflineMs(Math.min(elapsed, OFFLINE_CAP)),
+        capped: capped,
+        hasAuto: hasAuto,
+        autoLv: S.autoLv,
+        coins: coinsGained,
+        exp: expGained,
+        kills: kills,
+        bosses: bosses,
+        levelsGained: levelsGained,
+        startLevel: startLevel,
+        endLevel: S.level,
+        startStage: startStage,
+        endStage: S.stage,
+        drops: drops,
+        bagFull: bagFull,
+        stuck: stuck,
+        farmed: farmed,
+        autoSellCoins: autoSellCoins,
+        gems: gems,
+        trainMode: S.trainMode,
+        showPopup: elapsed >= OFFLINE_POPUP_MIN
+      };
+      return report;
+    }
+
+    function showOfflinePopup(r) {
+      if (!r || !el.modal) return;
+      var rows = '';
+      rows += '<div class="row-s"><span>離開時間</span><span>' + formatDuration(r.elapsed) + '</span></div>';
+      if (r.capped) rows += '<div class="row-s"><span>結算上限</span><span>24 小時</span></div>';
+      rows += '<div class="row-s"><span>擊敗魔物</span><span>' + fmtNum(r.kills) + ' 隻' + (r.bosses ? '（含首領 ' + r.bosses + '）' : '') + '</span></div>';
+      rows += '<div class="row-s"><span>獲得金幣</span><span>🪙 ' + fmtNum(r.coins) + '</span></div>';
+      if (r.autoSellCoins) rows += '<div class="row-s"><span>自動出售裝備</span><span>🪙 ' + fmtNum(r.autoSellCoins) + '</span></div>';
+      rows += '<div class="row-s"><span>獲得經驗</span><span>' + fmtNum(r.exp) + '</span></div>';
+      if (r.levelsGained) rows += '<div class="row-s"><span>升級</span><span>' + r.levelsGained + ' 次（現在 Lv.' + r.endLevel + '）</span></div>';
+      if (r.endStage > r.startStage) rows += '<div class="row-s"><span>層數</span><span>第 ' + r.startStage + ' 層 → 第 ' + r.endStage + ' 層</span></div>';
+      var dropHtml = '';
+      if (r.drops && r.drops.length) {
+        var names = r.drops.slice(0, 4).map(function (g) {
+          return '<span style="color:' + RARITY[g.rarity].color + '">【' + RARITY[g.rarity].name + '】' + esc(g.name) + '</span>';
+        }).join('、');
+        if (r.drops.length > 4) names += ' 等 ' + r.drops.length + ' 件';
+        dropHtml = '<div class="drops">掉落裝備：' + names + '</div>';
+      }
+      if (r.gems && (r.gems.bless || r.gems.soul || r.gems.life)) {
+        var gemBits = [];
+        if (r.gems.bless) gemBits.push('祝福寶石 ×' + r.gems.bless);
+        if (r.gems.soul) gemBits.push('靈魂寶石 ×' + r.gems.soul);
+        if (r.gems.life) gemBits.push('生命寶石 ×' + r.gems.life);
+        dropHtml += '<div class="drops">掉落寶石：' + gemBits.join('、') + '</div>';
+      }
+      var notes = '';
+      if (r.trainMode === 'manual') {
+        notes += '<p class="offline-note warn">離開時為「手動練功」模式，本次僅計算少量基礎掛機收益。切換為自動練功（需已解鎖）後，離線收益會大幅提升。</p>';
+      } else if (!r.hasAuto) {
+        notes += '<p class="offline-note warn">尚未解鎖自動攻擊，本次僅獲得少量基礎掛機收益。到商店解鎖自動攻擊並使用「自動練功」後，離開時的練功速度會大幅提升。</p>';
+      } else {
+        notes += '<p class="offline-note">已依自動練功、自動攻擊 Lv.' + r.autoLv + ' 的傷害效率結算離線進度。</p>';
+      }
+      if (r.stuck) {
+        notes += '<p class="offline-note">推進在第 ' + r.endStage + ' 層暫時停下（戰力尚不足以穩定擊敗眼前魔物）。離線期間不會陣亡' +
+          (r.farmed ? '，並改為在可擊敗的魔物身上繼續練功。' : '。') + '</p>';
+      }
+      var rawUse = Math.min(r.elapsed, 24 * 3600000);
+      if (r.capped || (r.applied != null && r.applied < rawUse - 5000)) {
+        notes += '<p class="offline-note">長時間掛機的收益效率會逐漸下降' + (r.capped ? '，最多計算 24 小時' : '') + '。</p>';
+      }
+      if (r.kills === 0 && !r.stuck) {
+        notes += '<p class="offline-note">時間較短或尚在戰鬥中，沒有完成擊殺。</p>';
+      }
+      el.modal.innerHTML = '<div class="modal-card offline-card" id="offline-card">' +
+        '<h3>掛機歸來</h3>' +
+        '<p>歡迎回來，冒險者。</p>' +
+        '<div class="offline-stats">' + rows + dropHtml + '</div>' +
+        notes +
+        '<div class="modal-actions"><button type="button" id="btn-offline-ok">繼續冒險</button></div></div>';
+      el.modal.classList.add('show');
+      var ok = document.getElementById('btn-offline-ok');
+      if (ok) ok.onclick = function () {
+        unlockAudio();
+        el.modal.classList.remove('show');
+        stampAndSave();
+      };
+      log('掛機歸來：離開 ' + formatDuration(r.elapsed) + '，擊敗 ' + r.kills + ' 隻，🪙' + fmtNum(r.coins) + '，經驗 ' + fmtNum(r.exp) + '。', 'ok');
+    }
+
+    function onMonsterDead() {
+      if (combatLock) return;
+      combatLock = true;
+      var m = monster;
+      el['monster-wrap'].classList.add('die');
+      sfx(m.isBoss ? 'win' : 'coin');
+      S.coins += m.coins;
+      S.kills += 1;
+      if (m.isBoss) S.bossKills += 1;
+      addExp(m.exp);
+      log('擊敗「' + m.name + '」！獲得 🪙' + m.coins + '、經驗 ' + m.exp, 'good');
+      floatText('+' + m.coins + ' 金幣', '#f0c75e', false, 0.55);
+      var rec = el.arena.getBoundingClientRect();
+      burst(rec.width * 0.5, rec.height * 0.4, m.isBoss ? '#ffb14a' : '#f0c75e', m.isBoss ? 28 : 14);
+      tryDrop(m.isBoss);
+
+      var nextWave = S.wave + 1;
+      var nextStage = S.stage;
+      var cleared = false;
+      if (m.isBoss) {
+        nextStage = S.stage + 1;
+        nextWave = 1;
+        cleared = true;
+      }
+
+      setTimeout(function () {
+        if (cleared) {
+          S.stage = nextStage;
+          S.wave = 1;
+          showBanner('進入第 ' + S.stage + ' 層');
+          log('層層深入…來到第 ' + S.stage + ' 層。', 'ok');
+        } else {
+          S.wave = nextWave;
+        }
+        combatLock = false;
+        spawnMonster();
+        save();
+        renderAll();
+      }, (S.autoLv > 0 && S.trainMode === 'auto') ? 150 : 320);
+
+      renderAll();
+    }
+
+    function playerDie() {
+      if (combatLock) return;
+      combatLock = true;
+      var lost = Math.floor(S.coins * 0.25);
+      S.coins -= lost;
+      S.hp = 0;
+      sfx('dead');
+      log('你被擊敗了…失去 🪙' + lost + '。', 'bad');
+      S.wave = 1;
+      S.hp = playerMaxHp();
+      var html = '<div class="modal-card">' +
+        '<h3>陣 亡</h3>' +
+        '<p>你在第 ' + S.stage + ' 層倒下了。</p>' +
+        '<p class="sub">失去 🪙 ' + lost + ' 金幣（25%）<br>將在本層入口重整旗鼓。</p>' +
+        '<div class="modal-actions"><button type="button" id="btn-revive">重新挑戰</button></div>' +
+        '</div>';
+      el.modal.innerHTML = html;
+      el.modal.classList.add('show');
+      document.getElementById('btn-revive').onclick = function () {
+        unlockAudio();
+        el.modal.classList.remove('show');
+        combatLock = false;
+        spawnMonster();
+        save();
+        renderAll();
+        log('你在第 ' + S.stage + ' 層入口甦醒。', '');
+      };
+      save();
+      renderAll();
+    }
+
+    function doPlayerAttack(auto) {
+      if (combatLock || !monster || monster.hp <= 0) return;
+      if (S.hp <= 0) return;
+      if (document.hidden) return;
+      var now = performance.now();
+      if (!auto && now - lastAtk < ATK_CD) return;
+      lastAtk = now;
+      var manual = !auto && S.trainMode === 'manual';
+      var crit = Math.random() < playerCritRate(manual);
+      var dmg = calcDmg(playerAtk(), monster.def, crit);
+      if (manual) dmg = Math.max(1, Math.round(dmg * 1.35));
+      monster.hp -= dmg;
+      var showFx = !auto || crit || (now - lastAutoFx >= 150);
+      if (showFx) {
+        lastAutoFx = now;
+        sfx(crit ? 'crit' : 'hit');
+        floatText((crit ? '暴擊 ' : '') + dmg, crit ? '#ffd24a' : '#fff7e8', crit);
+        el['monster-wrap'].classList.remove('hit');
+        void el['monster-wrap'].offsetWidth;
+        el['monster-wrap'].classList.add('hit');
+        if (!auto || crit) {
+          var rec = el.arena.getBoundingClientRect();
+          burst(rec.width * 0.5, rec.height * 0.38, crit ? '#ffd24a' : '#ffe8c0', auto ? 6 : (crit ? 16 : 8));
+        }
+      }
+      renderMonsterBar();
+      if (monster.hp <= 0) {
+        monster.hp = 0;
+        renderMonsterBar();
+        onMonsterDead();
+      }
+    }
+
+    function doMonsterAttack() {
+      if (document.hidden) return;
+      if (combatLock || !monster || monster.hp <= 0 || S.hp <= 0) return;
+      var dmg = calcDmg(monster.atk, playerDef(), false);
+      S.hp -= dmg;
+      sfx('hurt');
+      floatText('-' + dmg, '#ff6d6d', false, 0.22);
+      if (S.hp < 0) S.hp = 0;
+      renderHero();
+      if (S.hp <= 0) playerDie();
+    }
+
+    function renderHero() {
+      var maxh = playerMaxHp();
+      el['hp-fill'].style.width = (Math.max(0, S.hp) / maxh * 100) + '%';
+      el['hp-text'].textContent = '生命 ' + Math.max(0, Math.ceil(S.hp)) + ' / ' + maxh;
+      var need = expNeed(S.level);
+      el['exp-fill'].style.width = (S.exp / need * 100) + '%';
+      el['exp-text'].textContent = '經驗 ' + S.exp + ' / ' + need;
+      el['stat-atk'].textContent = String(playerAtk());
+      el['stat-def'].textContent = String(playerDef());
+      if (el['stat-crit']) el['stat-crit'].textContent = Math.round(playerCritRate(false) * 100) + '%';
+      el.lv.textContent = 'Lv.' + S.level;
+      el['stage-label'].textContent = '第 ' + S.stage + ' 層';
+      var wlabel = S.wave === WAVES_PER_STAGE ? '首領戰' : ('怪物 ' + S.wave + ' / ' + WAVES_PER_STAGE);
+      el['wave-label'].textContent = wlabel;
+      el.coins.textContent = '🪙 ' + S.coins;
+      el['btn-mute'].textContent = S.mute ? '🔇' : '🔊';
+      var as = el['auto-status'];
+      if (S.trainMode === 'manual') {
+        as.className = 'on';
+        as.innerHTML = '手動練功<br><b>+35% 傷害</b>';
+      } else if (S.autoLv <= 0) {
+        as.className = '';
+        as.innerHTML = '自動攻擊<br><b>未解鎖</b>';
+      } else {
+        as.className = 'on';
+        as.innerHTML = '自動攻擊<br><b>Lv.' + S.autoLv + '</b>';
+      }
+      updateModeUI();
+    }
+
+    function updateModeUI() {
+      var bar = el['mode-toggle'];
+      if (!bar) return;
+      var buttons = bar.querySelectorAll('button');
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].classList.toggle('on', buttons[i].getAttribute('data-mode') === S.trainMode);
+      }
+      var hint = el['mode-hint'];
+      if (!hint) return;
+      if (S.trainMode === 'manual') {
+        hint.textContent = '點擊攻擊有額外傷害與掉落率，離線僅少量收益。';
+      } else if (S.autoLv <= 0) {
+        hint.textContent = '到商店解鎖自動攻擊後即可掛機。';
+      } else {
+        hint.textContent = '自動攻擊進行中，離開也會練功。';
+      }
+    }
+
+    function setTrainMode(mode) {
+      S.trainMode = mode === 'manual' ? 'manual' : 'auto';
+      autoTimer = 0;
+      save();
+      renderHero();
+      toast(S.trainMode === 'manual' ? '已切換為手動練功' : '已切換為自動練功');
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+      });
+    }
+
+    function itemStatText(g, compact) {
+      if (!g) return '';
+      var bits = [];
+      var atk = effectiveAtk(g), def = effectiveDef(g), hp = effectiveHp(g), crit = effectiveCrit(g);
+      if (atk) bits.push('攻擊 +' + atk);
+      if (def) bits.push('防禦 +' + def);
+      if (hp) bits.push('生命 +' + hp);
+      if (crit) bits.push('暴擊 +' + Math.round(crit * 1000) / 10 + '%');
+      var extra = [];
+      if (g.plus) extra.push('<span class="plus-tag">+' + g.plus + '</span>');
+      if (g.life) extra.push('<span class="life-tag">生命+' + g.life + '</span>');
+      var body = bits.join(compact ? ' ' : '　');
+      return body + (extra.length ? (body ? '　' : '') + extra.join(' ') : '');
+    }
+
+    function gemBarHtml() {
+      var html = '<div class="gem-bar">';
+      ['bless', 'soul', 'life'].forEach(function (k) {
+        var G = GEMS[k];
+        html += '<span class="gem-pill" style="color:' + G.color + '">' + G.ico + ' ' + G.name + ' ×' + gemCount(k) + '</span>';
+      });
+      html += '</div>';
+      return html;
+    }
+
+    function slotCellHtml(slot, opts) {
+      opts = opts || {};
+      var info = slotInfo(slot);
+      var g = getEq(slot);
+      var cls = 'slot-cell' + (g && RARITY[g.rarity] ? ' ' + RARITY[g.rarity].cls : ' r-common') + (g ? '' : ' empty');
+      if (opts.pick) cls += ' pick';
+      if (opts.selected) cls += ' selected';
+      var open = opts.pick
+        ? ('<button type="button" class="' + cls + '" data-enh-slot="' + slot + '">')
+        : ('<div class="' + cls + '">');
+      var close = opts.pick ? '</button>' : '</div>';
+      var name, stats;
+      if (!g) {
+        name = '未裝備';
+        stats = '點擊背包裝備此部位';
+      } else {
+        var R = RARITY[g.rarity];
+        name = '<span style="color:' + R.color + '">' + esc(g.name) + '</span>';
+        stats = '【' + R.name + '】' + itemStatText(g, true);
+      }
+      return open +
+        '<div class="ico">' + info.ico + '</div>' +
+        '<div class="meta"><div class="slabel">' + info.name + '</div>' +
+        '<div class="iname">' + name + '</div>' +
+        '<div class="istats">' + stats + '</div></div>' +
+        close;
+    }
+
+    function renderBag() {
+      var html = '<h2>目前裝備</h2>';
+      html += '<div class="slot-grid">';
+      for (var s = 0; s < SLOT_DEFS.length; s++) html += slotCellHtml(SLOT_DEFS[s].id);
+      html += '</div>';
+      html += '<h2>寶石</h2>' + gemBarHtml();
+      html += '<h2>背包（' + S.inv.length + '）</h2>';
+      html += '<p class="hint">打怪掉落八部位裝備與祝福／靈魂／生命寶石。背包無上限，可排序或一鍵出售較差裝備。</p>';
+      html += '<div class="bag-tools">';
+      html += '<button type="button" class="mini' + (bagSort === 'power' ? ' on' : '') + '" data-sort="power">依強度</button>';
+      html += '<button type="button" class="mini' + (bagSort === 'rarity' ? ' on' : '') + '" data-sort="rarity">依稀有度</button>';
+      html += '<button type="button" class="mini' + (bagSort === 'type' ? ' on' : '') + '" data-sort="type">依類型</button>';
+      html += '<button type="button" class="mini warn" id="btn-sell-junk">一鍵出售較差裝備</button>';
+      html += '</div>';
+      html += '<div class="bag-tools">';
+      html += '<button type="button" class="mini' + (bagFilter === 'all' ? ' on' : '') + '" data-filter="all">全部</button>';
+      for (var f = 0; f < SLOT_DEFS.length; f++) {
+        var si = SLOT_DEFS[f];
+        html += '<button type="button" class="mini' + (bagFilter === si.id ? ' on' : '') + '" data-filter="' + si.id + '">' + si.name + '</button>';
+      }
+      html += '</div>';
+      var list = S.inv.filter(function (g) { return bagFilter === 'all' || itemSlot(g) === bagFilter; });
+      if (!S.inv.length) {
+        html += '<div class="empty">背包空空如也，去打怪碰碰運氣吧。</div>';
+      } else if (!list.length) {
+        html += '<div class="empty">這個部位目前沒有裝備。</div>';
+      } else {
+        var sorted = list.slice().sort(cmpBag);
+        var shown = Math.min(bagShown, sorted.length);
+        var lastGroup = '';
+        for (var i = 0; i < shown; i++) {
+          if (bagSort === 'type') {
+            var grp = itemSlot(sorted[i]);
+            if (grp !== lastGroup) {
+              lastGroup = grp;
+              var inf = slotInfo(grp);
+              html += '<div class="bag-group">' + (inf ? inf.ico + ' ' + inf.name : grp) + '</div>';
+            }
+          }
+          html += itemRow(sorted[i]);
+        }
+        if (shown < sorted.length) {
+          html += '<button type="button" class="mini bag-more" id="btn-bag-more">顯示更多（尚有 ' + (sorted.length - shown) + ' 件）</button>';
+        }
+      }
+      el['bag-body'].innerHTML = html;
+      bindBagBtns();
+    }
+
+    function cmpBag(x, y) {
+      var o = { legendary: 0, epic: 1, rare: 2, common: 3 };
+      var ox = slotOrder(itemSlot(x));
+      var oy = slotOrder(itemSlot(y));
+      if (bagSort === 'type') {
+        if (ox !== oy) return ox - oy;
+        return itemPower(y) - itemPower(x);
+      }
+      if (bagSort === 'rarity') {
+        return (o[x.rarity] - o[y.rarity]) || (itemPower(y) - itemPower(x));
+      }
+      return itemPower(y) - itemPower(x);
+    }
+    function slotOrder(id) {
+      for (var i = 0; i < SLOT_DEFS.length; i++) if (SLOT_DEFS[i].id === id) return i;
+      return 99;
+    }
+
+    function itemRow(g) {
+      var R = RARITY[g.rarity];
+      var info = slotInfo(itemSlot(g)) || SLOT_DEFS[0];
+      var equipped = isEquipped(g);
+      var price = sellPrice(g);
+      return '<div class="item compact ' + R.cls + '">' +
+        '<div class="ico">' + info.ico + '</div>' +
+        '<div class="meta"><div class="iname" style="color:' + R.color + '">' + esc(g.name) +
+        (equipped ? '<span class="equipped-tag">已裝備</span>' : '') + '</div>' +
+        '<div class="istats">【' + R.name + '・' + info.name + '】' + itemStatText(g, true) + '　售價 🪙' + price + '</div></div>' +
+        '<div class="actions">' +
+        (equipped
+          ? '<button class="mini" data-uneq="' + g.id + '">卸下</button>'
+          : '<button class="mini ok" data-eq="' + g.id + '">裝備</button>') +
+        '<button class="mini warn" data-sell="' + g.id + '">出售</button>' +
+        '</div></div>';
+    }
+
+    function sellPrice(g) {
+      var R = RARITY[g.rarity] || RARITY.common;
+      var core = effectiveAtk(g) + effectiveDef(g) + effectiveHp(g) * 0.15 + effectiveCrit(g) * 40;
+      return Math.max(8, Math.round((8 + (g.stage || 1) * 3 + core * 1.8) * (R.mult * 0.55)));
+    }
+
+    function bindBagBtns() {
+      el['bag-body'].querySelectorAll('[data-eq]').forEach(function (b) {
+        b.onclick = function () { equipItem(+b.getAttribute('data-eq')); };
+      });
+      el['bag-body'].querySelectorAll('[data-uneq]').forEach(function (b) {
+        b.onclick = function () { unequipItem(+b.getAttribute('data-uneq')); };
+      });
+      el['bag-body'].querySelectorAll('[data-sell]').forEach(function (b) {
+        b.onclick = function () { sellItem(+b.getAttribute('data-sell')); };
+      });
+      el['bag-body'].querySelectorAll('[data-sort]').forEach(function (b) {
+        b.onclick = function () { bagSort = b.getAttribute('data-sort'); bagShown = BAG_PAGE; renderBag(); };
+      });
+      el['bag-body'].querySelectorAll('[data-filter]').forEach(function (b) {
+        b.onclick = function () { bagFilter = b.getAttribute('data-filter'); bagShown = BAG_PAGE; renderBag(); };
+      });
+      var junk = document.getElementById('btn-sell-junk');
+      if (junk) junk.onclick = sellWorseItems;
+      var more = document.getElementById('btn-bag-more');
+      if (more) more.onclick = function () { bagShown += BAG_PAGE; renderBag(); };
+    }
+
+    function anyEquipped() {
+      for (var i = 0; i < SLOT_DEFS.length; i++) if (getEq(SLOT_DEFS[i].id)) return true;
+      return false;
+    }
+
+    function sellWorseItems() {
+      if (!anyEquipped()) {
+        toast('請先裝備至少一件裝備，才能比較較差裝備');
+        return;
+      }
+      var list = S.inv.filter(function (g) { return !isEquipped(g) && weakerThanEquipped(g); });
+      if (!list.length) {
+        toast('沒有弱於已裝備的物品');
+        return;
+      }
+      var total = 0;
+      for (var i = 0; i < list.length; i++) total += takeFromBag(list[i]);
+      clampHp();
+      save();
+      renderAll();
+      toast('已出售 ' + list.length + ' 件較差裝備，+' + total + ' 金幣');
+      log('一鍵出售較差裝備 ' + list.length + ' 件，+' + total + ' 金幣。', 'good');
+      sfx('coin');
+    }
+
+    function syncLegacyEq() {
+      if (!S.eq) S.eq = emptyEq();
+      S.eqW = S.eq.weapon || null;
+      S.eqA = S.eq.armor || null;
+    }
+
+    function equipItem(id) {
+      var g = findItem(id);
+      if (!g) return;
+      var slot = itemSlot(g);
+      if (!S.eq) S.eq = emptyEq();
+      S.eq[slot] = id;
+      syncLegacyEq();
+      clampHp();
+      save();
+      renderAll();
+      toast('已裝備 ' + g.name);
+      sfx('ok');
+    }
+
+    function unequipItem(id) {
+      var g = findItem(id);
+      if (!g) return;
+      clearEqId(id);
+      syncLegacyEq();
+      clampHp();
+      save();
+      renderAll();
+    }
+
+    function sellItem(id) {
+      var g = findItem(id);
+      if (!g) return;
+      var price = sellPrice(g);
+      clearEqId(id);
+      S.inv = S.inv.filter(function (x) { return x.id !== id; });
+      S.coins += price;
+      clampHp();
+      save();
+      renderAll();
+      toast('出售 ' + g.name + '，+' + price + ' 金幣');
+      sfx('coin');
+    }
+
+    function enhanceItem(idOrItem, kind, roll) {
+      var g = (idOrItem && typeof idOrItem === 'object') ? idOrItem : findItem(idOrItem);
+      if (!g) return { ok: false, reason: 'noitem', plus: 0, life: 0 };
+      migrateItem(g);
+      if (kind === 'life') {
+        if ((g.life || 0) >= 4) return { ok: false, reason: 'life-max', plus: g.plus, life: g.life };
+        if (gemCount('life') < 1) return { ok: false, reason: 'no-gem', plus: g.plus, life: g.life };
+        S.gems.life -= 1;
+        g.life = (g.life || 0) + 1;
+        return { ok: true, reason: 'ok', plus: g.plus, life: g.life, consumed: true };
+      }
+      if (kind === 'bless') {
+        if ((g.plus || 0) >= 9) return { ok: false, reason: 'need-soul', plus: g.plus, life: g.life };
+        if (gemCount('bless') < 1) return { ok: false, reason: 'no-gem', plus: g.plus, life: g.life };
+        S.gems.bless -= 1;
+        var nextB = (g.plus || 0) + 1;
+        var rateB = nextPlusRate(nextB);
+        var okB = (roll != null ? roll : Math.random()) < rateB;
+        if (okB) g.plus = nextB;
+        return { ok: okB, reason: okB ? 'ok' : 'fail', plus: g.plus, life: g.life, rate: rateB, consumed: true };
+      }
+      if (kind === 'soul') {
+        if ((g.plus || 0) < 9) return { ok: false, reason: 'need-bless', plus: g.plus, life: g.life };
+        if ((g.plus || 0) >= 12) return { ok: false, reason: 'max', plus: g.plus, life: g.life };
+        if (gemCount('soul') < 1) return { ok: false, reason: 'no-gem', plus: g.plus, life: g.life };
+        S.gems.soul -= 1;
+        var nextS = g.plus + 1;
+        var rateS = nextPlusRate(nextS);
+        var okS = (roll != null ? roll : Math.random()) < rateS;
+        if (okS) g.plus = nextS;
+        return { ok: okS, reason: okS ? 'ok' : 'fail', plus: g.plus, life: g.life, rate: rateS, consumed: true };
+      }
+      return { ok: false, reason: 'bad-kind', plus: g.plus, life: g.life };
+    }
+
+    function renderEnhance() {
+      if (!slotInfo(enhSlot)) enhSlot = 'weapon';
+      var g = getEq(enhSlot);
+      var html = '<h2>裝備強化</h2>';
+      html += '<p class="hint">強化會消耗寶石，且強化等級屬於該件裝備。祝福寶石用於 +1～+9，靈魂寶石用於 +10～+12，生命寶石可為主屬性額外 +1～+4（顯示為生命+N）。失敗只消耗寶石，不會掉級。金幣仍可用於商店。</p>';
+      html += gemBarHtml();
+      html += '<h2>選擇部位</h2><div class="slot-grid">';
+      for (var s = 0; s < SLOT_DEFS.length; s++) {
+        var id = SLOT_DEFS[s].id;
+        html += slotCellHtml(id, { pick: true, selected: enhSlot === id });
+      }
+      html += '</div>';
+      if (!g) {
+        html += '<div class="enh-card"><div class="empty">此部位尚未裝備。請先到背包裝備物品，強化等級會跟著裝備走。</div></div>';
+      } else {
+        html += enhanceCard(g);
+      }
+      el['enhance-body'].innerHTML = html;
+      el['enhance-body'].querySelectorAll('[data-enh-slot]').forEach(function (b) {
+        b.onclick = function () { enhSlot = b.getAttribute('data-enh-slot'); renderEnhance(); };
+      });
+      var bb = document.getElementById('enh-bless');
+      var bs = document.getElementById('enh-soul');
+      var bl = document.getElementById('enh-life');
+      if (bb) bb.onclick = function () { doEnhance('bless'); };
+      if (bs) bs.onclick = function () { doEnhance('soul'); };
+      if (bl) bl.onclick = function () { doEnhance('life'); };
+    }
+
+    function enhanceCard(g) {
+      var info = slotInfo(itemSlot(g)) || SLOT_DEFS[0];
+      var R = RARITY[g.rarity];
+      var plus = g.plus || 0;
+      var life = g.life || 0;
+      var html = '<div class="enh-card" id="card-enh">';
+      html += '<div class="row"><div><div style="font-size:13px;color:var(--muted)">' + info.ico + ' ' + info.name + '</div>';
+      html += '<div class="iname" style="color:' + R.color + '">' + esc(g.name) + '</div>';
+      html += '<div class="enh-plus">+' + plus + (life ? '　<span class="life-tag">生命+' + life + '</span>' : '') + '</div></div>';
+      html += '<div style="text-align:right;font-size:12px;color:var(--muted)">' + itemStatText(g, false) + '</div></div>';
+      if (plus < 9) {
+        var nb = plus + 1;
+        var rb = nextPlusRate(nb);
+        var haveB = gemCount('bless');
+        html += '<div class="enh-need">下一級 <b>+' + nb + '</b>　消耗 <b>祝福寶石 ×1</b>（持有 ' + haveB + '）<br>成功率 <b class="' + (rb < 1 ? (rb < 0.5 ? 'danger' : 'risky') : '') + '">' + Math.round(rb * 100) + '%</b></div>';
+        html += '<button class="enh-btn" id="enh-bless"' + (haveB < 1 ? ' disabled' : '') + '>祝福強化 → +' + nb + '</button>';
+      } else if (plus < 12) {
+        html += '<div class="enh-need">已達祝福上限 +9，改用靈魂寶石繼續強化。</div>';
+      } else {
+        html += '<div class="enh-need">強化等級已達上限 +12。</div>';
+      }
+      if (plus >= 9 && plus < 12) {
+        var ns = plus + 1;
+        var rs = nextPlusRate(ns);
+        var haveS = gemCount('soul');
+        html += '<div class="enh-need">下一級 <b>+' + ns + '</b>　消耗 <b>靈魂寶石 ×1</b>（持有 ' + haveS + '）<br>成功率 <b class="danger">' + Math.round(rs * 100) + '%</b></div>';
+        html += '<button class="enh-btn" id="enh-soul"' + (haveS < 1 ? ' disabled' : '') + '>靈魂強化 → +' + ns + '</button>';
+      }
+      if (life < 4) {
+        var haveL = gemCount('life');
+        html += '<div class="enh-need">生命寶石為主屬性 +1（下一次顯示 <b>生命+' + (life + 1) + '</b>）　持有 ' + haveL + '　成功率 <b>100%</b>　最多 4 次</div>';
+        html += '<button class="enh-btn" id="enh-life"' + (haveL < 1 ? ' disabled' : '') + '>賦予生命 → 生命+' + (life + 1) + '</button>';
+      } else {
+        html += '<div class="enh-need">生命寶石已達上限（生命+4）。</div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function doEnhance(kind) {
+      var g = getEq(enhSlot);
+      if (!g) { toast('請先裝備此部位'); return; }
+      var beforePlus = g.plus || 0;
+      var beforeLife = g.life || 0;
+      var res = enhanceItem(g, kind);
+      var card = document.getElementById('card-enh');
+      if (res.reason === 'no-gem') { toast('寶石不足'); return; }
+      if (res.reason === 'need-soul') { toast('+9 之後請改用靈魂寶石'); return; }
+      if (res.reason === 'need-bless') { toast('靈魂寶石只能用於 +10～+12'); return; }
+      if (res.reason === 'life-max') { toast('生命寶石最多使用 4 次'); return; }
+      if (res.reason === 'max') { toast('已達強化上限 +12'); return; }
+      if (!res.consumed && !res.ok) { toast('無法強化'); return; }
+      if (res.ok) {
+        if (kind === 'life') {
+          sfx('ok');
+          toast(g.name + ' 生命+' + res.life);
+          log('對「' + g.name + '」使用生命寶石，現在是生命+' + res.life + '。', 'ok');
+        } else {
+          if (kind === 'life') {}
+          if (S.hp > 0) { var m = playerMaxHp(); S.hp = Math.min(m, S.hp + 4); }
+          sfx('ok');
+          toast(g.name + ' 強化成功！+' + res.plus);
+          log('「' + g.name + '」強化成功，現在是 +' + res.plus + '。', 'ok');
+        }
+        if (card) { card.classList.remove('flash-fail'); card.classList.add('flash-ok'); }
+      } else {
+        sfx('fail');
+        toast('強化失敗…寶石已消耗，等級不變（仍為 +' + beforePlus + '）');
+        log('「' + g.name + '」強化失敗，仍是 +' + beforePlus + '。', 'bad');
+        if (card) { card.classList.remove('flash-ok'); card.classList.add('flash-fail'); }
+      }
+      clampHp();
+      save();
+      renderAll();
+    }
+
+    function renderShop() {
+      var autoMax = S.autoLv >= 5;
+      var autoCost = autoUpgradeCost();
+      var autoTitle = S.autoLv === 0 ? '解鎖自動攻擊' : ('升級自動攻擊 至 Lv.' + (S.autoLv + 1));
+      var autoDesc = S.autoLv === 0
+        ? '解鎖後會自動揮劍攻擊魔物；離開遊戲或切換分頁時，也會依攻擊效率繼續掛機練功。'
+        : '縮短自動攻擊間隔（目前 ' + (autoInterval() / 1000).toFixed(2) + ' 秒），離線掛機也會跟著加快。最高 5 級。';
+      var html = '<h2>旅人商店</h2><p class="hint">用打怪賺來的金幣補給、解鎖自動攻擊，或永久提升生命上限。離開時會自動存檔並結算掛機收益。</p>';
+      html += shopCard('回復藥水', '🧪', '立即恢復 35% 最大生命。', potSmallCost(), '購買', 'pot-s', S.hp >= playerMaxHp());
+      html += shopCard('高級藥水', '🧴', '立即恢復 70% 最大生命。', potBigCost(), '購買', 'pot-b', S.hp >= playerMaxHp());
+      html += shopCard('生命修煉', '❤️', '永久增加 20 點生命上限，並立即回復等量生命。已修煉 ' + S.hpBoost + ' 次。', hpBoostCost(), '修煉', 'hp-up', false);
+      html += shopCard(autoTitle, '⚔️', autoDesc, autoCost, autoMax ? '已滿級' : (S.autoLv === 0 ? '解鎖' : '升級'), 'auto', autoMax);
+      el['shop-body'].innerHTML = html;
+      bindShop();
+    }
+
+    function shopCard(title, ico, desc, price, btn, key, dis) {
+      var can = !dis && S.coins >= price;
+      return '<div class="shop-card"><div class="row"><div style="font-weight:700">' + ico + ' ' + title + '</div>' +
+        '<div class="price">' + (dis && key === 'auto' ? '—' : ('🪙 ' + price)) + '</div></div>' +
+        '<p>' + desc + '</p>' +
+        '<button class="shop-btn ok" data-shop="' + key + '"' + (can ? '' : ' disabled') + '>' + btn + '</button></div>';
+    }
+
+    function bindShop() {
+      el['shop-body'].querySelectorAll('[data-shop]').forEach(function (b) {
+        b.onclick = function () { buy(b.getAttribute('data-shop')); };
+      });
+    }
+
+    function buy(key) {
+      if (key === 'pot-s' || key === 'pot-b') {
+        var cost = key === 'pot-s' ? potSmallCost() : potBigCost();
+        if (S.coins < cost) { toast('金幣不足'); return; }
+        if (S.hp >= playerMaxHp()) { toast('生命已滿'); return; }
+        S.coins -= cost;
+        var pct = key === 'pot-b' ? 0.7 : 0.35;
+        var heal = Math.max(1, Math.round(playerMaxHp() * pct));
+        S.hp = Math.min(playerMaxHp(), S.hp + heal);
+        floatText('+' + heal, '#6ee09a', false, 0.5);
+        sfx('ok');
+        toast('回復 ' + heal + ' 點生命');
+        log('喝下藥水，回復 ' + heal + ' 點生命。', 'ok');
+      } else if (key === 'hp-up') {
+        var c2 = hpBoostCost();
+        if (S.coins < c2) { toast('金幣不足'); return; }
+        S.coins -= c2;
+        S.hpBoost += 1;
+        S.hp = Math.min(playerMaxHp(), S.hp + 20);
+        sfx('lv');
+        toast('生命上限 +20');
+        log('生命修煉成功，上限提升。', 'ok');
+      } else if (key === 'auto') {
+        if (S.autoLv >= 5) return;
+        var c3 = autoUpgradeCost();
+        if (S.coins < c3) { toast('金幣不足'); return; }
+        S.coins -= c3;
+        S.autoLv += 1;
+        autoTimer = 0;
+        sfx('ok');
+        toast(S.autoLv === 1 ? '已解鎖自動攻擊' : ('自動攻擊升級至 Lv.' + S.autoLv));
+        log(S.autoLv === 1 ? '解鎖了自動攻擊！' : ('自動攻擊提升至 Lv.' + S.autoLv + '。'), 'ok');
+      }
+      save();
+      renderAll();
+    }
+
+    function renderAll() {
+      renderHero();
+      renderMonsterBar();
+      if (tab === 'bag') renderBag();
+      if (tab === 'enhance') renderEnhance();
+      if (tab === 'shop') renderShop();
+    }
+
+    function switchTab(name) {
+      tab = name;
+      document.querySelectorAll('.panel').forEach(function (p) {
+        p.classList.toggle('active', p.id === 'panel-' + name);
+      });
+      document.querySelectorAll('nav button').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-tab') === name);
+      });
+      renderAll();
+    }
+
+    function showIntro() {
+      el.intro.innerHTML = '<div class="modal-card"><h3>深淵奪寶</h3>' +
+        '<p>點擊魔物或「攻擊」來戰鬥。魔物會定時反擊，注意生命值。</p>' +
+        '<p class="sub">擊敗魔物可獲得金幣與經驗，並掉落武器、頭盔、鎧甲、項鍊、手套、護腿、鞋子、內衣，以及祝福、靈魂、生命寶石。<br>' +
+        '每層第 ' + WAVES_PER_STAGE + ' 隻是首領。可切換「自動練功／手動練功」；手動點擊傷害更高、掉寶較佳。<br>' +
+        '強化改為消耗寶石，等級跟著裝備走。離開會自動存檔並結算掛機。若你是重新下載遊戲檔，請用右上角 💾 匯出存檔，換檔後再匯入，否則進度會讀不到。</p>' +
+        '<div class="modal-actions"><button type="button" id="intro-ok">開始冒險</button></div></div>';
+      el.intro.classList.add('show');
+      document.getElementById('intro-ok').onclick = function () {
+        el.intro.classList.remove('show');
+        S.seenIntro = true;
+        ensureAudio();
+        save();
+      };
+    }
+
+    function confirmReset() {
+      el.modal.innerHTML = '<div class="modal-card"><h3>重置進度</h3>' +
+        '<p>確定要刪除所有存檔，從頭開始嗎？此操作無法復原。</p>' +
+        '<div class="modal-actions">' +
+        '<button type="button" class="ghost" id="rst-no">取消</button>' +
+        '<button type="button" id="rst-yes">確定重置</button></div></div>';
+      el.modal.classList.add('show');
+      document.getElementById('rst-no').onclick = function () { el.modal.classList.remove('show'); };
+      document.getElementById('rst-yes').onclick = function () {
+        el.modal.classList.remove('show');
+        clearAllStorage().then(function () {
+          resetGame();
+          toast('已重置進度');
+        });
+      };
+    }
+
+    var canvas, ctx, lastTs = 0, cssW = 0, cssH = 0;
+
+    function resizeCanvas() {
+      canvas = el.fx;
+      if (!canvas) return;
+      var rec = canvas.getBoundingClientRect();
+      cssW = rec.width; cssH = rec.height;
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.floor(rec.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rec.height * dpr));
+      ctx = canvas.getContext('2d');
+      if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function tick(ts) {
+      requestAnimationFrame(tick);
+      if (!lastTs) lastTs = ts;
+      var dt = Math.min(0.05, (ts - lastTs) / 1000);
+      lastTs = ts;
+
+      if (document.hidden) {
+        hiddenCombat = true;
+        lastTs = 0;
+        return;
+      }
+
+      if (!combatLock && monster && monster.hp > 0 && S.hp > 0) {
+        monTimer += dt * 1000;
+        if (monTimer >= monAtkInterval()) {
+          monTimer = 0;
+          doMonsterAttack();
+        }
+        if (S.autoLv > 0 && S.trainMode === 'auto') {
+          autoTimer += dt * 1000;
+          var iv = autoInterval();
+          var swings = 0;
+          while (iv > 0 && autoTimer >= iv && swings < 8 && monster && monster.hp > 0 && !combatLock) {
+            autoTimer -= iv;
+            swings += 1;
+            doPlayerAttack(true);
+          }
+          if (autoTimer > iv * 2) autoTimer = iv;
+        }
+      }
+
+      if (ctx && cssW) {
+        ctx.clearRect(0, 0, cssW, cssH);
+        for (var i = particles.length - 1; i >= 0; i--) {
+          var p = particles[i];
+          p.life -= dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vy += 180 * dt;
+          if (p.life <= 0) { particles.splice(i, 1); continue; }
+          ctx.globalAlpha = Math.max(0, p.life / 0.5);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function bind() {
+      el['btn-attack'].addEventListener('click', function (e) {
+        e.stopPropagation();
+        ensureAudio();
+        doPlayerAttack(false);
+      });
+      var lastTouchAtk = 0;
+      el.arena.addEventListener('click', function () {
+        if (performance.now() - lastTouchAtk < 500) return;
+        ensureAudio();
+        doPlayerAttack(false);
+      });
+      el.arena.addEventListener('touchstart', function (e) {
+        if (e.cancelable) e.preventDefault();
+        lastTouchAtk = performance.now();
+        ensureAudio();
+        doPlayerAttack(false);
+      }, { passive: false });
+      document.querySelectorAll('nav button').forEach(function (b) {
+        b.addEventListener('click', function () { switchTab(b.getAttribute('data-tab')); });
+      });
+      el['btn-mute'].addEventListener('click', function () {
+        S.mute = !S.mute;
+        if (!S.mute) unlockAudio();
+        save();
+        renderHero();
+      });
+      el['btn-reset'].addEventListener('click', confirmReset);
+      var hint = document.getElementById('bookmark-hint');
+      var hintBtn = document.getElementById('btn-hint-ok');
+      if (hint && location.protocol === 'https:') {
+        var dismissed = false;
+        try { dismissed = localStorage.getItem('sydb-bookmark-hint') === '1'; } catch (e) {}
+        if (!dismissed) hint.classList.add('show');
+      }
+      if (hintBtn) hintBtn.addEventListener('click', function () {
+        if (hint) hint.classList.remove('show');
+        try { localStorage.setItem('sydb-bookmark-hint', '1'); } catch (e) {}
+      });
+      if (el['btn-save']) el['btn-save'].addEventListener('click', showSaveModal);
+      if (el['mode-toggle']) {
+        el['mode-toggle'].querySelectorAll('button').forEach(function (b) {
+          b.addEventListener('click', function () { setTrainMode(b.getAttribute('data-mode')); });
+        });
+      }
+      if (el['file-import']) {
+        el['file-import'].addEventListener('change', function () {
+          var f = el['file-import'].files && el['file-import'].files[0];
+          el['file-import'].value = '';
+          if (!f) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            if (importFromText(String(reader.result || ''))) {
+              if (!document.getElementById('offline-card')) {
+                el.modal.classList.remove('show');
+                toast('存檔已匯入');
+              }
+            } else toast('存檔檔無效');
+          };
+          reader.readAsText(f);
+        });
+      }
+      function onAudioGesture() { unlockAudio(); }
+      document.addEventListener('pointerdown', onAudioGesture, { capture: true, passive: true });
+      document.addEventListener('touchstart', onAudioGesture, { capture: true, passive: true });
+      document.addEventListener('keydown', onAudioGesture, { capture: true });
+      window.addEventListener('pageshow', function () { unlockAudio(); });
+      window.addEventListener('beforeunload', stampAndSave);
+      window.addEventListener('pagehide', stampAndSave);
+      window.addEventListener('resize', resizeCanvas);
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          hiddenCombat = true;
+          stampAndSave();
+          lastTs = 0;
+        } else {
+          unlockAudio();
+          var report = applyOfflineProgress();
+          hiddenCombat = false;
+          lastTs = 0;
+          monTimer = 0;
+          autoTimer = 0;
+          if (report && report.showPopup && S.seenIntro) showOfflinePopup(report);
+          renderAll();
+        }
+      });
+      if (saveTimer) clearInterval(saveTimer);
+      saveTimer = setInterval(function () {
+        if (!document.hidden) stampAndSave();
+      }, 15000);
+    }
+
+    var readyResolve;
+    var gameReady = new Promise(function (resolve) { readyResolve = resolve; });
+
+    function markStorageReadable() {
+      var backends = [];
+      try { if (readLocalStorage()) backends.push('本機'); } catch (e) {}
+      try { if (readCookie()) backends.push('Cookie'); } catch (e) {}
+      if (backends.length) {
+        storageInfo.ok = true;
+        storageInfo.backends = backends;
+        storageInfo.lastOk = Date.now();
+      }
+    }
+
+    function finishInit(loaded) {
+      bind();
+      resizeCanvas();
+      var offlineReport = null;
+      if (loaded) {
+        markStorageReadable();
+        offlineReport = applyOfflineProgress();
+      }
+      if (!monster) spawnMonster();
+      else syncMonsterSprite();
+      renderAll();
+      save();
+      updateSaveStatus();
+      requestAnimationFrame(tick);
+      if (!S.seenIntro) showIntro();
+      else if (offlineReport && offlineReport.showPopup) showOfflinePopup(offlineReport);
+      else if (loaded) log('歡迎回來，冒險者。進度已載入。', 'ok');
+      if (!loaded) log('踏上深淵之路。點擊魔物或攻擊按鈕開始戰鬥！', '');
+      if (readyResolve) readyResolve(true);
+    }
+
+    function init() {
+      cacheEls();
+      loadAll().then(function (loaded) {
+        finishInit(!!loaded);
+      }).catch(function () {
+        finishInit(load());
+      });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+
+    window.__GAME__ = {
+      ready: gameReady,
+      getState: function () { return S; },
+      getMonster: function () { return monster; },
+      attack: function () { doPlayerAttack(false); },
+      spawn: spawnMonster,
+      save: stampAndSave,
+      reset: resetGame,
+      SAVE_KEY: SAVE_KEY,
+      autoInterval: autoInterval,
+      formatDuration: formatDuration,
+      getLastSeen: function () { return lastSeen; },
+      applyOfflineFor: function (ms) {
+        lastSeen = Date.now() - ms;
+        return applyOfflineProgress();
+      },
+      exportCode: exportCode,
+      importFromText: importFromText,
+      payloadRaw: payloadRaw,
+      itemPower: itemPower,
+      placeItem: placeItem,
+      storageInfo: function () { return storageInfo; },
+      setTrainMode: setTrainMode,
+      INV_MAX: INV_MAX,
+      unlockAudio: unlockAudio,
+      getAudioContext: function () { return audioCtx; },
+      applyPayload: applyPayload,
+      migrateState: migrateState,
+      makeGear: makeGear,
+      enhanceItem: enhanceItem,
+      addGem: addGem,
+      rollGemDrops: rollGemDrops,
+      nextPlusRate: nextPlusRate,
+      effectiveAtk: effectiveAtk,
+      effectiveDef: effectiveDef,
+      effectiveHp: effectiveHp,
+      itemSlot: itemSlot,
+      getEq: getEq,
+      equipItem: equipItem,
+      sfx: sfx,
+      sfxLog: function () { return sfxLog.slice(); },
+      clearSfxLog: function () { sfxLog = []; },
+      SLOTS: SLOT_DEFS,
+      GEMS: GEMS
+    };
+  })();
+  </script>
+</body>
+</html>

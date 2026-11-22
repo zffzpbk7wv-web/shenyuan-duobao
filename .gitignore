@@ -1,0 +1,6 @@
+*.png
+!icon-192.png
+!icon-512.png
+screenshot.png
+*.mjs
+deploy.sh
