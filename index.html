@@ -492,6 +492,71 @@
       border-color: var(--line);
       font-weight: 600;
     }
+    .name-input {
+      width: 100%;
+      box-sizing: border-box;
+      margin: 8px 0 4px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0c0912;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 16px;
+      text-align: center;
+      letter-spacing: 0.06em;
+    }
+    .name-input:focus { outline: none; border-color: var(--gold-dim); }
+    .name-err { color: var(--danger); font-size: 12px; min-height: 18px; }
+    .player-chip {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .player-chip b { color: var(--gold); }
+    .player-chip button {
+      margin-left: 6px;
+      border: 0;
+      background: none;
+      color: var(--gold);
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+    }
+    .modal-card.lb-card {
+      max-width: 420px;
+      text-align: left;
+      max-height: min(86vh, 640px);
+      overflow: auto;
+    }
+    .lb-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+    .lb-table th {
+      color: var(--muted);
+      font-weight: 700;
+      text-align: left;
+      padding: 4px 3px;
+      border-bottom: 1px solid var(--line);
+      letter-spacing: 0.06em;
+    }
+    .lb-table td {
+      padding: 6px 3px;
+      border-bottom: 1px solid var(--line-soft);
+      color: var(--text);
+      vertical-align: top;
+    }
+    .lb-table tr.me td { color: var(--gold); background: #f0c75e14; }
+    .lb-table .num { text-align: right; white-space: nowrap; }
+    .lb-empty, .lb-err { font-size: 13px; color: var(--muted); margin: 12px 0; text-align: center; }
+    .lb-err { color: #ffb14a; }
     #toast {
       position: absolute;
       top: 30%; left: 50%;
@@ -745,9 +810,11 @@
       <div class="title-row">
         <div>
           <h1>深淵奪寶</h1>
+          <div id="player-chip" class="player-chip"></div>
           <div id="save-status" class="save-status">存檔檢查中…</div>
         </div>
         <div class="icon-btns">
+          <button class="icon-btn" id="btn-lb" title="排行榜">🏆</button>
           <button class="icon-btn" id="btn-save" title="匯出／匯入存檔">💾</button>
           <button class="icon-btn" id="btn-mute" title="音效">🔊</button>
           <button class="icon-btn" id="btn-reset" title="重置進度">↺</button>
@@ -825,6 +892,11 @@
     'use strict';
 
     var SAVE_KEY = 'shenyuan-duobao-v1';
+    var PID_KEY = 'shenyuan-duobao-pid';
+    var LB_URL = 'https://jipxyxesndbxwgbqpivw.supabase.co';
+    var LB_KEY = 'sb_publishable_KdAc40FqPzW9kjNBMUHNBg_Hq0dJsKX';
+    var LB_INTERVAL = 3 * 60 * 1000;
+    var LB_THROTTLE = 8000;
     var WAVES_PER_STAGE = 6;
     var INV_MAX = Infinity;
     var BAG_PAGE = 40;
@@ -932,7 +1004,10 @@
         uid: 1,
         kills: 0,
         bossKills: 0,
-        trainMode: 'auto'
+        trainMode: 'auto',
+        playerName: '',
+        playerId: '',
+        bestFloor: 1
       };
     }
 
@@ -964,7 +1039,7 @@
         'hp-fill','hp-text','exp-fill','exp-text','stat-crit','arena','fx','monster-wrap',
         'monster-emoji','monster-name','mhp-bar','mhp-fill','mhp-text','banner',
         'log','btn-attack','auto-status','bag-body','enhance-body','shop-body',
-        'modal','intro','toast','btn-mute','btn-reset','btn-save','save-status','mode-toggle','mode-hint','file-import'
+        'modal','intro','toast','btn-mute','btn-reset','btn-save','btn-lb','player-chip','save-status','mode-toggle','mode-hint','file-import'
       ];
       ids.forEach(function (id) { el[id] = document.getElementById(id); });
     }
@@ -1396,6 +1471,7 @@
     var SAVE_PREFIX = 'SYD1.';
     var storageInfo = { ok: false, backends: [], lastOk: 0, error: '' };
     var bagSort = 'power';
+    var pendingOfflineReport = null;
     var bagFilter = 'all';
     var bagShown = BAG_PAGE;
     var enhSlot = 'weapon';
@@ -1512,6 +1588,10 @@
       S.eqW = S.eq.weapon || null;
       S.eqA = S.eq.armor || null;
       normalizeUid();
+      if (typeof S.playerName !== 'string') S.playerName = '';
+      S.playerName = sanitizeName(S.playerName);
+      S.bestFloor = Math.max(1, parseInt(S.bestFloor, 10) || 1, S.stage || 1);
+      ensurePlayerId();
     }
 
     function applyPayload(data) {
@@ -1530,6 +1610,229 @@
       if (typeof ls === 'number' && ls > 0 && ls < Date.now() + 60000) lastSeen = ls;
       else lastSeen = Date.now();
       return true;
+    }
+
+
+    function sanitizeName(raw) {
+      var s = String(raw == null ? '' : raw).replace(/[\u0000-\u001F\u007F]/g, '').replace(/\s+/g, ' ').trim();
+      var chars = Array.from(s);
+      if (chars.length > 12) s = chars.slice(0, 12).join('');
+      return s;
+    }
+    function isValidName(raw) {
+      var s = sanitizeName(raw);
+      return s.length >= 1 && Array.from(s).length <= 12;
+    }
+    function newPlayerId() {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, '');
+      var s = '', i, hex = '0123456789abcdef';
+      for (i = 0; i < 32; i++) s += hex.charAt(Math.floor(Math.random() * 16));
+      return s;
+    }
+    function ensurePlayerId() {
+      var id = S.playerId;
+      if (!id || typeof id !== 'string') {
+        try { id = localStorage.getItem(PID_KEY) || ''; } catch (e) { id = ''; }
+      }
+      if (!id || !/^[A-Za-z0-9_-]{8,64}$/.test(id)) id = newPlayerId();
+      S.playerId = id;
+      try { localStorage.setItem(PID_KEY, id); } catch (e) {}
+      return id;
+    }
+    function bumpBestFloor() {
+      S.bestFloor = Math.max(1, S.bestFloor || 1, S.stage || 1);
+      return S.bestFloor;
+    }
+    function playerPower() {
+      return Math.max(0, Math.round(playerAtk() * 10 + playerDef() * 12 + playerMaxHp() * 1.5 + (S.level || 1) * 5));
+    }
+    function lbHeaders() {
+      return {
+        apikey: LB_KEY,
+        Authorization: 'Bearer ' + LB_KEY,
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      };
+    }
+    var lastLbSubmit = 0;
+    var lbTimer = 0;
+    function submitLeaderboard(opts) {
+      opts = opts || {};
+      ensurePlayerId();
+      bumpBestFloor();
+      if (!isValidName(S.playerName)) return Promise.resolve(false);
+      var now = Date.now();
+      if (!opts.force && !opts.keepalive && now - lastLbSubmit < LB_THROTTLE) return Promise.resolve('throttled');
+      lastLbSubmit = now;
+      var body = JSON.stringify({
+        p_id: S.playerId,
+        p_name: sanitizeName(S.playerName),
+        p_floor: Math.max(1, S.bestFloor || 1),
+        p_power: playerPower(),
+        p_level: Math.max(1, S.level || 1)
+      });
+      var ctrl = null, timer = 0;
+      var req = {
+        method: 'POST',
+        headers: lbHeaders(),
+        body: body,
+        cache: 'no-store',
+        keepalive: !!opts.keepalive
+      };
+      if (!opts.keepalive && typeof AbortController !== 'undefined') {
+        ctrl = new AbortController();
+        req.signal = ctrl.signal;
+        timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 12000);
+      }
+      return fetch(LB_URL + '/rest/v1/rpc/submit_score', req).then(function (r) {
+        if (timer) clearTimeout(timer);
+        if (!r.ok) throw new Error('lb ' + r.status);
+        return true;
+      }).catch(function () {
+        if (timer) clearTimeout(timer);
+        return false;
+      });
+    }
+    function fetchLeaderboard() {
+      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 12000) : 0;
+      return fetch(LB_URL + '/rest/v1/leaderboard?select=player_id,name,max_floor,power,level,updated_at&order=max_floor.desc,power.desc&limit=50', {
+        method: 'GET',
+        headers: lbHeaders(),
+        cache: 'no-store',
+        signal: ctrl ? ctrl.signal : undefined
+      }).then(function (r) {
+        if (timer) clearTimeout(timer);
+        if (!r.ok) throw new Error('lb ' + r.status);
+        return r.json();
+      }).then(function (rows) {
+        return Array.isArray(rows) ? rows : [];
+      }).catch(function () {
+        if (timer) clearTimeout(timer);
+        return null;
+      });
+    }
+    function formatLbTime(iso) {
+      if (!iso) return '—';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return '—';
+        var fmt = new Intl.DateTimeFormat('zh-TW', {
+          timeZone: 'Asia/Taipei',
+          month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit',
+          hour12: false
+        }).format(d);
+        return fmt + '（台北）';
+      } catch (e) { return '—'; }
+    }
+    function renderPlayerChip() {
+      var elc = el['player-chip'];
+      if (!elc) return;
+      if (isValidName(S.playerName)) {
+        elc.innerHTML = '冒險者 <b>' + esc(sanitizeName(S.playerName)) + '</b><button type="button" id="btn-rename">改名</button>';
+        var b = document.getElementById('btn-rename');
+        if (b) b.onclick = function () { showNameModal(true); };
+      } else {
+        elc.innerHTML = '';
+      }
+    }
+    function showNameModal(isRename) {
+      var host = isRename ? el.modal : el.intro;
+      if (!host) return;
+      var cur = sanitizeName(S.playerName);
+      host.innerHTML = '<div class="modal-card" id="name-card"><h3>' + (isRename ? '更改暱稱' : '取一個名字') + '</h3>' +
+        '<p>進入深淵前，先為自己取一個 1 到 12 個字的暱稱。這個名字會顯示在排行榜上。</p>' +
+        '<input class="name-input" id="name-input" type="text" maxlength="24" autocomplete="off" spellcheck="false" value="' + esc(cur) + '">' +
+        '<div class="name-err" id="name-err"></div>' +
+        '<div class="modal-actions">' +
+        (isRename ? '<button type="button" class="ghost" id="name-cancel">取消</button>' : '') +
+        '<button type="button" id="name-ok">確定</button></div></div>';
+      host.classList.add('show');
+      var input = document.getElementById('name-input');
+      var err = document.getElementById('name-err');
+      function apply() {
+        var name = sanitizeName(input && input.value);
+        if (!isValidName(name)) {
+          if (err) err.textContent = '請輸入 1 到 12 個字的暱稱';
+          return;
+        }
+        S.playerName = name;
+        ensurePlayerId();
+        bumpBestFloor();
+        save();
+        renderPlayerChip();
+        host.classList.remove('show');
+        submitLeaderboard({ force: true });
+        toast('歡迎，' + name);
+        if (!isRename && pendingOfflineReport && pendingOfflineReport.showPopup) {
+          var r = pendingOfflineReport;
+          pendingOfflineReport = null;
+          showOfflinePopup(r);
+        }
+      }
+      var ok = document.getElementById('name-ok');
+      if (ok) ok.onclick = apply;
+      if (input) {
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') apply();
+        });
+        setTimeout(function () { try { input.focus(); input.select(); } catch (e) {} }, 50);
+      }
+      var cancel = document.getElementById('name-cancel');
+      if (cancel) cancel.onclick = function () { host.classList.remove('show'); };
+    }
+    function maybeAskName() {
+      if (!isValidName(S.playerName)) showNameModal(false);
+    }
+    function showLeaderboard() {
+      if (!el.modal) return;
+      el.modal.innerHTML = '<div class="modal-card lb-card"><h3>🏆 排行榜</h3>' +
+        '<p class="sub">以最高層數為先，層數相同再比總戰力。最多顯示 50 名。</p>' +
+        '<div id="lb-body" class="lb-empty">讀取中…</div>' +
+        '<div class="modal-actions"><button type="button" class="ghost" id="btn-lb-rename">改名</button>' +
+        '<button type="button" id="btn-lb-close">關閉</button></div></div>';
+      el.modal.classList.add('show');
+      var close = document.getElementById('btn-lb-close');
+      if (close) close.onclick = function () { el.modal.classList.remove('show'); };
+      var rn = document.getElementById('btn-lb-rename');
+      if (rn) rn.onclick = function () { el.modal.classList.remove('show'); showNameModal(true); };
+      fetchLeaderboard().then(function (rows) {
+        var box = document.getElementById('lb-body');
+        if (!box) return;
+        if (!rows) {
+          box.className = 'lb-err';
+          box.textContent = '排行榜暫時連不上';
+          return;
+        }
+        if (!rows.length) {
+          box.className = 'lb-empty';
+          box.textContent = '目前還沒有人上榜，去闖一層再回來看看。';
+          return;
+        }
+        var html = '<table class="lb-table"><thead><tr>' +
+          '<th>#</th><th>暱稱</th><th class="num">最高層</th><th class="num">戰力／等級</th><th>更新</th>' +
+          '</tr></thead><tbody>';
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var me = S.playerId && r.player_id === S.playerId;
+          html += '<tr' + (me ? ' class="me"' : '') + '>' +
+            '<td class="num">' + (i + 1) + '</td>' +
+            '<td>' + esc(r.name || '—') + (me ? '（你）' : '') + '</td>' +
+            '<td class="num">' + (r.max_floor || 0) + '</td>' +
+            '<td class="num">' + (r.power || 0) + '／Lv.' + (r.level || 1) + '</td>' +
+            '<td>' + formatLbTime(r.updated_at) + '</td></tr>';
+        }
+        html += '</tbody></table>';
+        box.className = '';
+        box.innerHTML = html;
+      });
+    }
+    function startLbTimer() {
+      if (lbTimer) clearInterval(lbTimer);
+      lbTimer = setInterval(function () {
+        if (isValidName(S.playerName)) submitLeaderboard({});
+      }, LB_INTERVAL);
     }
 
     function writeLocalStorage(raw) {
@@ -1666,7 +1969,9 @@
 
     function stampAndSave() {
       lastSeen = Date.now();
-      return save();
+      var ok = save();
+      if (isValidName(S.playerName)) submitLeaderboard({ keepalive: true });
+      return ok;
     }
 
     function pickNewest(raws) {
@@ -1720,6 +2025,7 @@
     function resetGame() {
       S = defaultState();
       S.seenIntro = true;
+      ensurePlayerId();
       logs = [];
       particles = [];
       lastSeen = Date.now();
@@ -1728,6 +2034,7 @@
       save();
       renderAll();
       log('旅程重新開始。', '');
+      showNameModal(false);
     }
 
     function exportCode() {
@@ -2107,6 +2414,7 @@
       else syncMonsterSprite();
 
       lastSeen = now;
+      bumpBestFloor();
       save();
 
       var report = {
@@ -2226,11 +2534,13 @@
         if (cleared) {
           S.stage = nextStage;
           S.wave = 1;
+          bumpBestFloor();
           showBanner('進入第 ' + S.stage + ' 層');
           log('層層深入…來到第 ' + S.stage + ' 層。', 'ok');
         } else {
           S.wave = nextWave;
         }
+        if (m.isBoss || cleared) submitLeaderboard({ force: true });
         combatLock = false;
         spawnMonster();
         save();
@@ -2332,6 +2642,7 @@
       el['wave-label'].textContent = wlabel;
       el.coins.textContent = '🪙 ' + S.coins;
       el['btn-mute'].textContent = S.mute ? '🔇' : '🔊';
+      renderPlayerChip();
       var as = el['auto-status'];
       if (S.trainMode === 'manual') {
         as.className = 'on';
@@ -2852,6 +3163,7 @@
         S.seenIntro = true;
         ensureAudio();
         save();
+        maybeAskName();
       };
     }
 
@@ -2976,6 +3288,7 @@
         try { localStorage.setItem('sydb-bookmark-hint', '1'); } catch (e) {}
       });
       if (el['btn-save']) el['btn-save'].addEventListener('click', showSaveModal);
+      if (el['btn-lb']) el['btn-lb'].addEventListener('click', showLeaderboard);
       if (el['mode-toggle']) {
         el['mode-toggle'].querySelectorAll('button').forEach(function (b) {
           b.addEventListener('click', function () { setTrainMode(b.getAttribute('data-mode')); });
@@ -3052,14 +3365,22 @@
       }
       if (!monster) spawnMonster();
       else syncMonsterSprite();
+      ensurePlayerId();
+      bumpBestFloor();
       renderAll();
       save();
       updateSaveStatus();
+      startLbTimer();
       requestAnimationFrame(tick);
+      pendingOfflineReport = (offlineReport && offlineReport.showPopup) ? offlineReport : null;
       if (!S.seenIntro) showIntro();
-      else if (offlineReport && offlineReport.showPopup) showOfflinePopup(offlineReport);
-      else if (loaded) log('歡迎回來，冒險者。進度已載入。', 'ok');
+      else if (!isValidName(S.playerName)) maybeAskName();
+      else if (pendingOfflineReport) {
+        showOfflinePopup(pendingOfflineReport);
+        pendingOfflineReport = null;
+      } else if (loaded) log('歡迎回來，冒險者。進度已載入。', 'ok');
       if (!loaded) log('踏上深淵之路。點擊魔物或攻擊按鈕開始戰鬥！', '');
+      if (isValidName(S.playerName)) submitLeaderboard({ force: true });
       if (readyResolve) readyResolve(true);
     }
 
@@ -3118,7 +3439,15 @@
       sfxLog: function () { return sfxLog.slice(); },
       clearSfxLog: function () { sfxLog = []; },
       SLOTS: SLOT_DEFS,
-      GEMS: GEMS
+      GEMS: GEMS,
+      sanitizeName: sanitizeName,
+      ensurePlayerId: ensurePlayerId,
+      playerPower: playerPower,
+      submitLeaderboard: function (opts) { return submitLeaderboard(opts || { force: true }); },
+      fetchLeaderboard: fetchLeaderboard,
+      showNameModal: showNameModal,
+      showLeaderboard: showLeaderboard,
+      LB_URL: LB_URL
     };
   })();
   </script>
