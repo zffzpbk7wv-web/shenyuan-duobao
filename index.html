@@ -1300,15 +1300,21 @@
     }
 
     function monsterStats(stage, isBoss, randomize) {
-      var mul = isBoss ? 3.15 : 1;
-      var hp = Math.round((30 + stage * 15) * mul);
-      var atk = Math.round((5 + stage * 2.15) * (isBoss ? 1.85 : 1));
-      var def = Math.round(stage * 0.65 * (isBoss ? 1.45 : 1));
+      var s = Math.max(1, stage || 1);
+      var hp = Math.round(30 * 1.18 + s * 15 * 1.48 + s * s * 0.18);
+      var atk = Math.round(5 * 1.18 + s * 2.15 * 1.48 + s * s * 0.028);
+      var def = Math.round(s * 0.65 * 1.15 + s * s * 0.01);
+      if (isBoss) {
+        hp = Math.round(hp * 3.15 * 1.25);
+        atk = Math.round(atk * 1.85 * 1.25);
+        def = Math.round(def * 1.45 * 1.25);
+      }
       var coinMul = randomize ? (0.85 + Math.random() * 0.35) : 1;
-      var coins = Math.round((7 + stage * 4) * (isBoss ? 4.2 : 1) * coinMul);
-      var exp = Math.round((10 + stage * 6) * (isBoss ? 3.4 : 1));
-      var dodge = Math.min(0.40, 0.02 + stage * 0.006) * (isBoss ? 1.15 : 1);
-      var hit = Math.min(0.95, 0.70 + stage * 0.007) * (isBoss ? 1.05 : 1);
+      var coins = Math.round((7 + s * 4) * 1.18 * (isBoss ? 4.2 : 1) * coinMul);
+      var exp = Math.round((10 + s * 6) * 1.15 * (isBoss ? 3.4 : 1));
+      var dodge = Math.min(0.35, 0.028 + s * 0.0084) * (isBoss ? 1.15 : 1);
+      if (dodge > 0.38) dodge = 0.38;
+      var hit = Math.min(0.95, 0.70 * 1.15 + s * 0.007 * 1.4) * (isBoss ? 1.05 : 1);
       if (hit > 0.95) hit = 0.95;
       return { hp: hp, atk: atk, def: def, coins: coins, exp: exp, dodge: dodge, hit: hit };
     }
@@ -2320,9 +2326,10 @@
     }
 
     function gemDropRate(kind, isBoss) {
-      if (kind === 'bless') return isBoss ? 0.28 : 0.10;
-      if (kind === 'soul') return isBoss ? 0.12 : 0.025;
-      if (kind === 'life') return isBoss ? 0.20 : 0.07;
+      var m = 1.18;
+      if (kind === 'bless') return (isBoss ? 0.28 : 0.10) * m;
+      if (kind === 'soul') return (isBoss ? 0.12 : 0.025) * m;
+      if (kind === 'life') return (isBoss ? 0.20 : 0.07) * m;
       return 0;
     }
     function rollGemDrops(isBoss, silent, forceKind) {
@@ -2344,7 +2351,7 @@
     }
 
     function tryDrop(isBoss, silent) {
-      var chance = isBoss ? 0.62 : 0.2;
+      var chance = (isBoss ? 0.62 : 0.2) * 1.18;
       if (isManualFight()) chance = Math.min(0.92, chance * 1.5);
       var place = { item: null, soldCoins: 0, soldN: 0, kept: false, gems: [] };
       if (Math.random() <= chance) {
@@ -3784,6 +3791,7 @@
       hitChance: hitChance,
       setCombatRolls: setCombatRolls,
       doMonsterAttack: doMonsterAttack,
+      monsterStats: monsterStats,
       itemSlot: itemSlot,
       getEq: getEq,
       equipItem: equipItem,
