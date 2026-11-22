@@ -609,7 +609,7 @@
       z-index: 4;
     }
     .dmg-float.crit { font-size: 32px; color: #ffd24a !important; letter-spacing: 0.04em; text-shadow: 0 2px 0 #000, 0 0 14px #ffb14acc; }
-    .dmg-float.heal { color: #6ee09a !important; }
+    .dmg-float.heal { font-size: 16px; color: #6ee09a !important; font-weight: 700; opacity: 0.92; }
     .dmg-float.miss { font-size: 20px; color: #9aa4b8 !important; letter-spacing: 0.12em; }
     .dmg-float.evade { font-size: 22px; color: #6ee0c4 !important; }
     @keyframes floatup {
@@ -1177,6 +1177,41 @@
       var m = playerMaxHp();
       if (S.hp > m) S.hp = m;
     }
+    function playerLifesteal() { return 0.03; }
+    function killHealRate(isBoss) { return isBoss ? 0.20 : 0.08; }
+    var DEATH_COIN_RATE = 0.10;
+    var lifestealAcc = 0;
+    var lastHealFx = 0;
+    function addHp(amount) {
+      if (S.hp <= 0) return 0;
+      var maxh = playerMaxHp();
+      var before = S.hp;
+      S.hp = Math.min(maxh, S.hp + Math.max(0, amount));
+      return S.hp - before;
+    }
+    function floatHeal(got, force, xRatio) {
+      if (got <= 0) return;
+      var now = performance.now();
+      if (!force && now - lastHealFx < 480) return;
+      lastHealFx = now;
+      floatText('+' + Math.round(got), '#6ee09a', false, xRatio == null ? 0.22 : xRatio);
+    }
+    function applyHitLifesteal(dmg, opts) {
+      opts = opts || {};
+      lifestealAcc += Math.max(0, dmg) * playerLifesteal();
+      var heal = Math.floor(lifestealAcc + 1e-9);
+      lifestealAcc -= heal;
+      if (heal <= 0) return 0;
+      var got = addHp(heal);
+      if (got > 0 && !opts.silent && !opts.skipFloat) floatHeal(got, !!opts.force);
+      return got;
+    }
+    function applyKillHeal(isBoss, opts) {
+      opts = opts || {};
+      var got = addHp(playerMaxHp() * killHealRate(isBoss));
+      if (got > 0 && !opts.silent) floatHeal(got, true, 0.18);
+      return got;
+    }
 
     function nextPlusRate(nextLv) {
       if (nextLv <= 6) return 1;
@@ -1301,20 +1336,19 @@
 
     function monsterStats(stage, isBoss, randomize) {
       var s = Math.max(1, stage || 1);
-      var hp = Math.round(30 * 1.18 + s * 15 * 1.48 + s * s * 0.18);
-      var atk = Math.round(5 * 1.18 + s * 2.15 * 1.48 + s * s * 0.028);
-      var def = Math.round(s * 0.65 * 1.15 + s * s * 0.01);
+      var hp = Math.round(30 * 1.12 + s * 15 * 1.17 + s * s * 0.07);
+      var atk = Math.round(5 * 1.12 + s * 2.15 * 1.18 + s * s * 0.01);
+      var def = Math.round(s * 0.65 * (isBoss ? 1.45 : 1));
       if (isBoss) {
-        hp = Math.round(hp * 3.15 * 1.25);
-        atk = Math.round(atk * 1.85 * 1.25);
-        def = Math.round(def * 1.45 * 1.25);
+        hp = Math.round(hp * 3.15 * 1.08);
+        atk = Math.round(atk * 1.85 * 1.08);
       }
       var coinMul = randomize ? (0.85 + Math.random() * 0.35) : 1;
       var coins = Math.round((7 + s * 4) * 1.18 * (isBoss ? 4.2 : 1) * coinMul);
       var exp = Math.round((10 + s * 6) * 1.15 * (isBoss ? 3.4 : 1));
-      var dodge = Math.min(0.35, 0.028 + s * 0.0084) * (isBoss ? 1.15 : 1);
-      if (dodge > 0.38) dodge = 0.38;
-      var hit = Math.min(0.95, 0.70 * 1.15 + s * 0.007 * 1.4) * (isBoss ? 1.05 : 1);
+      var dodge = Math.min(0.28, 0.024 + s * 0.0072) * (isBoss ? 1.15 : 1);
+      if (dodge > 0.30) dodge = 0.30;
+      var hit = Math.min(0.95, 0.7525 + s * 0.0084) * (isBoss ? 1.05 : 1);
       if (hit > 0.95) hit = 0.95;
       return { hp: hp, atk: atk, def: def, coins: coins, exp: exp, dodge: dodge, hit: hit };
     }
@@ -2428,8 +2462,9 @@
         }) / (iv / 1000);
         var mDps = avgDamage(st.atk, playerDef(), { land: mLand, crit: 0, critDmg: 1 }) /
           (monAtkInterval(stage) / 1000);
+        var netM = Math.max(0, mDps - pDps * playerLifesteal());
         var ttk = hp / Math.max(0.001, pDps);
-        var tdie = playerMaxHp() / Math.max(0.001, mDps);
+        var tdie = playerMaxHp() / Math.max(0.001, netM);
         return { pDps: pDps, ttk: ttk, tdie: tdie, can: ttk < tdie * 0.95 };
       }
 
@@ -2621,7 +2656,9 @@
       S.kills += 1;
       if (m.isBoss) S.bossKills += 1;
       addExp(m.exp);
-      log('擊敗「' + m.name + '」！獲得 🪙' + m.coins + '、經驗 ' + m.exp, 'good');
+      var healed = applyKillHeal(!!m.isBoss);
+      if (healed > 0) log('擊敗「' + m.name + '」！獲得 🪙' + m.coins + '、經驗 ' + m.exp + '，回復 ' + Math.round(healed) + ' 生命。', 'good');
+      else log('擊敗「' + m.name + '」！獲得 🪙' + m.coins + '、經驗 ' + m.exp, 'good');
       floatText('+' + m.coins + ' 金幣', '#f0c75e', false, 0.55);
       var rec = el.arena.getBoundingClientRect();
       burst(rec.width * 0.5, rec.height * 0.4, m.isBoss ? '#ffb14a' : '#f0c75e', m.isBoss ? 28 : 14);
@@ -2659,7 +2696,7 @@
     function playerDie() {
       if (combatLock) return;
       combatLock = true;
-      var lost = Math.floor(S.coins * 0.25);
+      var lost = Math.floor(S.coins * DEATH_COIN_RATE);
       S.coins -= lost;
       S.hp = 0;
       sfx('dead');
@@ -2669,7 +2706,7 @@
       var html = '<div class="modal-card">' +
         '<h3>陣 亡</h3>' +
         '<p>你在第 ' + S.stage + ' 層倒下了。</p>' +
-        '<p class="sub">失去 🪙 ' + lost + ' 金幣（25%）<br>將在本層入口重整旗鼓。</p>' +
+        '<p class="sub">失去 🪙 ' + lost + ' 金幣（10%）<br>將在本層入口重整旗鼓。</p>' +
         '<div class="modal-actions"><button type="button" id="btn-revive">重新挑戰</button></div>' +
         '</div>';
       el.modal.innerHTML = html;
@@ -2717,6 +2754,8 @@
       var dmg = calcDmg(playerAtk(), monster.def, crit, playerCritDmg());
       if (manual) dmg = Math.max(1, Math.round(dmg * 1.35));
       monster.hp -= dmg;
+      var willKill = monster.hp <= 0;
+      applyHitLifesteal(dmg, { skipFloat: willKill });
       var showFx = !auto || crit || (now - lastAutoFx >= 150);
       if (showFx) {
         lastAutoFx = now;
@@ -2731,6 +2770,7 @@
         }
       }
       renderMonsterBar();
+      if (!willKill) renderHero();
       if (monster.hp <= 0) {
         monster.hp = 0;
         renderMonsterBar();
@@ -2780,6 +2820,8 @@
           '<div>爆擊傷害 <b>' + Math.round(playerCritDmg() * 100) + '%</b></div>' +
           '<div>命中 <b>' + fmtPct(playerHit()) + '</b></div>' +
           '<div>閃避 <b>' + fmtPct(playerDodge()) + '</b></div>' +
+          '<div>吸血 <b>' + fmtPct(playerLifesteal()) + '</b></div>' +
+          '<div>擊敗回血 <b>8%</b>／首領 <b>20%</b></div>' +
           '<div>戰力 <b>' + playerPower() + '</b></div>' +
           '<div>手動暴擊 <b>' + fmtPct(playerCritRate(true)) + '</b></div>';
       }
@@ -3792,6 +3834,11 @@
       setCombatRolls: setCombatRolls,
       doMonsterAttack: doMonsterAttack,
       monsterStats: monsterStats,
+      playerLifesteal: playerLifesteal,
+      killHealRate: killHealRate,
+      applyKillHeal: applyKillHeal,
+      playerDie: playerDie,
+      DEATH_COIN_RATE: DEATH_COIN_RATE,
       itemSlot: itemSlot,
       getEq: getEq,
       equipItem: equipItem,
