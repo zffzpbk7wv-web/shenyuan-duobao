@@ -2693,20 +2693,34 @@
       renderAll();
     }
 
+    function applyDeathPenalty() {
+      var fromStage = Math.max(1, S.stage || 1);
+      var lost = Math.floor((S.coins || 0) * DEATH_COIN_RATE);
+      S.coins = Math.max(0, (S.coins || 0) - lost);
+      var toStage = Math.max(1, fromStage - 10);
+      S.stage = toStage;
+      S.wave = 1;
+      S.hp = playerMaxHp();
+      monster = null;
+      monTimer = 0;
+      autoTimer = 0;
+      return { lost: lost, fromStage: fromStage, toStage: toStage };
+    }
+    function deathMessage(r) {
+      return '你倒下了，退回第 ' + r.toStage + ' 層，損失 ' + r.lost + ' 金幣';
+    }
     function playerDie() {
       if (combatLock) return;
       combatLock = true;
-      var lost = Math.floor(S.coins * DEATH_COIN_RATE);
-      S.coins -= lost;
-      S.hp = 0;
+      var r = applyDeathPenalty();
       sfx('dead');
-      log('你被擊敗了…失去 🪙' + lost + '。', 'bad');
-      S.wave = 1;
-      S.hp = playerMaxHp();
+      var msg = deathMessage(r);
+      log(msg, 'bad');
+      toast(msg, 2800);
       var html = '<div class="modal-card">' +
         '<h3>陣 亡</h3>' +
-        '<p>你在第 ' + S.stage + ' 層倒下了。</p>' +
-        '<p class="sub">失去 🪙 ' + lost + ' 金幣（10%）<br>將在本層入口重整旗鼓。</p>' +
+        '<p>你在第 ' + r.fromStage + ' 層倒下了。</p>' +
+        '<p class="sub">退回第 ' + r.toStage + ' 層，損失 🪙 ' + r.lost + ' 金幣（10%）</p>' +
         '<div class="modal-actions"><button type="button" id="btn-revive">重新挑戰</button></div>' +
         '</div>';
       el.modal.innerHTML = html;
@@ -2715,6 +2729,7 @@
         unlockAudio();
         el.modal.classList.remove('show');
         combatLock = false;
+        S.wave = 1;
         spawnMonster();
         save();
         renderAll();
@@ -2722,6 +2737,7 @@
       };
       save();
       renderAll();
+      return r;
     }
 
     var combatRolls = [];
@@ -3839,6 +3855,8 @@
       applyKillHeal: applyKillHeal,
       playerDie: playerDie,
       DEATH_COIN_RATE: DEATH_COIN_RATE,
+      applyDeathPenalty: applyDeathPenalty,
+      deathMessage: deathMessage,
       itemSlot: itemSlot,
       getEq: getEq,
       equipItem: equipItem,
