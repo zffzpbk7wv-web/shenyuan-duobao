@@ -2893,7 +2893,7 @@
       html += '</div>';
       html += '<h2>寶石</h2>' + gemBarHtml();
       html += '<h2>背包（' + S.inv.length + '）</h2>';
-      html += '<p class="hint">打怪掉落八部位裝備與寶石。可一鍵穿裝最強裝備，或把強化繼承到同部位新裝備（來源重置為 +0）。</p>';
+      html += '<p class="hint">打怪掉落八部位裝備與寶石。一鍵穿裝會把舊裝備的強化自動繼承到新裝備（免費、來源重置為 +0）。也可手動把強化繼承到同部位裝備。</p>';
       html += '<div class="bag-tools">';
       html += '<button type="button" class="mini' + (bagSort === 'power' ? ' on' : '') + '" data-sort="power">依強度</button>';
       html += '<button type="button" class="mini' + (bagSort === 'rarity' ? ' on' : '') + '" data-sort="rarity">依稀有度</button>';
@@ -3055,9 +3055,9 @@
       if (newPlus === dp && newLife === dl && !opts.force) {
         return { ok: false, reason: 'noupgrade', plus: newPlus, life: newLife };
       }
-      var cost = inheritCost(src);
-      if (S.coins < cost) return { ok: false, reason: 'coins', cost: cost };
-      S.coins -= cost;
+      var cost = opts.free ? 0 : inheritCost(src);
+      if (!opts.free && S.coins < cost) return { ok: false, reason: 'coins', cost: cost };
+      if (!opts.free) S.coins -= cost;
       dst.plus = newPlus;
       dst.life = newLife;
       src.plus = 0;
@@ -3156,18 +3156,51 @@
         equipItem(newItem.id, { skipInherit: true });
       };
     }
+    function itemPowerAfterInherit(g, from) {
+      if (!g) return 0;
+      if (!from || from.id === g.id) return itemPower(g);
+      var tmp = {};
+      for (var k in g) tmp[k] = g[k];
+      tmp.plus = Math.max(g.plus || 0, from.plus || 0);
+      tmp.life = Math.max(g.life || 0, from.life || 0);
+      return itemPower(tmp);
+    }
+    function bestInSlotAfterInherit(slot, equipped) {
+      var best = null, bp = -1;
+      for (var i = 0; i < S.inv.length; i++) {
+        var g = S.inv[i];
+        if (itemSlot(g) !== slot) continue;
+        var pw = itemPowerAfterInherit(g, equipped);
+        if (pw > bp) { bp = pw; best = g; }
+      }
+      return best;
+    }
     function autoEquipBest() {
       if (!S.eq) S.eq = emptyEq();
       var changes = [];
       for (var i = 0; i < SLOT_DEFS.length; i++) {
-        var slot = SLOT_DEFS[i].id;
+        var info = SLOT_DEFS[i];
+        var slot = info.id;
         var cur = getEq(slot);
-        var best = bestInSlot(slot);
+        var best = bestInSlotAfterInherit(slot, cur);
         if (!best) continue;
         if (cur && cur.id === best.id) continue;
-        if (cur && itemPower(best) <= itemPower(cur) + 0.01) continue;
+        var curPw = cur ? itemPower(cur) : -1;
+        var bestPw = itemPowerAfterInherit(best, cur);
+        if (bestPw <= curPw + 0.01) continue;
+        var line = info.name + ' 已更換';
+        if (cur && (cur.plus || cur.life)) {
+          var r = inheritEnhance(cur.id, best.id, { silent: true, free: true, force: true });
+          if (r.ok) {
+            line += '，繼承 +' + r.plus + (r.life ? '、生命+' + r.life : '');
+          } else {
+            line += '「' + best.name + '」';
+          }
+        } else {
+          line += '「' + best.name + '」';
+        }
         S.eq[slot] = best.id;
-        changes.push(SLOT_DEFS[i].name + '「' + best.name + '」');
+        changes.push(line);
       }
       syncLegacyEq();
       clampHp();
@@ -3177,8 +3210,8 @@
         toast('目前已是各部位最強裝備');
         return { changed: 0, changes: [] };
       }
-      toast('已一鍵穿裝 ' + changes.length + ' 件：' + changes.join('、'), 2800);
-      log('一鍵穿裝：' + changes.join('、'), 'ok');
+      toast('已一鍵穿裝：' + changes.join('；'), 3200);
+      log('一鍵穿裝：' + changes.join('；'), 'ok');
       sfx('ok');
       return { changed: changes.length, changes: changes };
     }
@@ -3732,6 +3765,7 @@
       enhanceItem: enhanceItem,
       inheritEnhance: inheritEnhance,
       inheritCost: inheritCost,
+      itemPowerAfterInherit: itemPowerAfterInherit,
       autoEquipBest: autoEquipBest,
       addGem: addGem,
       rollGemDrops: rollGemDrops,
