@@ -199,6 +199,8 @@
       flex: 1;
       min-height: 180px;
       margin-top: 8px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
       border-radius: 14px;
       overflow: hidden;
       background:
@@ -319,6 +321,9 @@
     #btn-attack {
       flex: 1;
       height: 52px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
       border: 1px solid #e8b45a;
       border-radius: 12px;
       background: linear-gradient(180deg, #d4a23a 0%, #8a5a12 100%);
@@ -926,7 +931,7 @@
     var WAVES_PER_STAGE = 6;
     var INV_MAX = Infinity;
     var BAG_PAGE = 40;
-    var ATK_CD = 320;
+    var PENDING_ATK_CAP = 5;
 
     var RARITY = {
       common: { id: 'common', name: '普通', color: '#c8c4bc', cls: 'r-common', log: '', w: 58, mult: 1 },
@@ -1040,7 +1045,9 @@
     var S = defaultState();
     var monster = null;
     var logs = [];
-    var lastAtk = 0;
+    var pendingManualAttacks = 0;
+    var awaitingNextMonster = false;
+    var atkResolved = 0;
     var monTimer = 0;
     var autoTimer = 0;
     var particles = [];
@@ -1399,6 +1406,7 @@
         sfx('boss');
       }
       renderMonsterBar();
+      if (!combatLock) flushPendingManualAttacks();
     }
 
     function renderMonsterBar() {
@@ -2649,6 +2657,7 @@
     function onMonsterDead() {
       if (combatLock) return;
       combatLock = true;
+      awaitingNextMonster = true;
       var m = monster;
       el['monster-wrap'].classList.add('die');
       sfx(m.isBoss ? 'win' : 'coin');
@@ -2685,7 +2694,9 @@
         }
         if (m.isBoss || cleared) submitLeaderboard({ force: true });
         combatLock = false;
+        awaitingNextMonster = false;
         spawnMonster();
+        flushPendingManualAttacks();
         save();
         renderAll();
       }, (S.autoLv > 0 && S.trainMode === 'auto') ? 150 : 320);
@@ -2704,6 +2715,8 @@
       monster = null;
       monTimer = 0;
       autoTimer = 0;
+      pendingManualAttacks = 0;
+      awaitingNextMonster = false;
       return { lost: lost, fromStage: fromStage, toStage: toStage };
     }
     function deathMessage(r) {
@@ -2747,13 +2760,34 @@
     }
     function setCombatRolls(arr) { combatRolls = (arr || []).slice(); }
 
+    function requestManualAttack() {
+      if (S.hp <= 0 || document.hidden) return;
+      if (combatLock || !monster || monster.hp <= 0) {
+        if (awaitingNextMonster || (!combatLock && (!monster || monster.hp <= 0))) {
+          if (pendingManualAttacks < PENDING_ATK_CAP) pendingManualAttacks += 1;
+        }
+        return;
+      }
+      return doPlayerAttack(false);
+    }
+    function flushPendingManualAttacks() {
+      if (pendingManualAttacks <= 0) return;
+      if (combatLock || !monster || monster.hp <= 0 || S.hp <= 0) return;
+      var n = pendingManualAttacks;
+      pendingManualAttacks = 0;
+      for (var i = 0; i < n; i++) {
+        if (combatLock || !monster || monster.hp <= 0 || S.hp <= 0) {
+          pendingManualAttacks = Math.min(PENDING_ATK_CAP, pendingManualAttacks + (n - i));
+          break;
+        }
+        doPlayerAttack(false);
+      }
+    }
     function doPlayerAttack(auto) {
       if (combatLock || !monster || monster.hp <= 0) return;
       if (S.hp <= 0) return;
       if (document.hidden) return;
       var now = performance.now();
-      if (!auto && now - lastAtk < ATK_CD) return;
-      lastAtk = now;
       var manual = !auto && S.trainMode === 'manual';
       normalizeMonster(monster);
       var land = hitChance(playerHit(), monster.dodge || 0);
@@ -2764,6 +2798,7 @@
           sfx('miss');
           floatText('MISS', '#9aa4b8', false, null, 'miss');
         }
+        atkResolved += 1;
         return 'miss';
       }
       var crit = nextRoll() < playerCritRate(manual);
@@ -2792,6 +2827,7 @@
         renderMonsterBar();
         onMonsterDead();
       }
+      atkResolved += 1;
       return crit ? 'crit' : 'hit';
     }
 
@@ -3650,22 +3686,32 @@
     }
 
     function bind() {
+      var lastBtnPointerAt = 0;
+      el['btn-attack'].addEventListener('pointerdown', function (e) {
+        if (e.button !== undefined && e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        lastBtnPointerAt = performance.now();
+        ensureAudio();
+        requestManualAttack();
+      });
       el['btn-attack'].addEventListener('click', function (e) {
         e.stopPropagation();
+        if (performance.now() - lastBtnPointerAt < 700) return;
         ensureAudio();
-        doPlayerAttack(false);
+        requestManualAttack();
       });
       var lastTouchAtk = 0;
       el.arena.addEventListener('click', function () {
         if (performance.now() - lastTouchAtk < 500) return;
         ensureAudio();
-        doPlayerAttack(false);
+        requestManualAttack();
       });
       el.arena.addEventListener('touchstart', function (e) {
         if (e.cancelable) e.preventDefault();
         lastTouchAtk = performance.now();
         ensureAudio();
-        doPlayerAttack(false);
+        requestManualAttack();
       }, { passive: false });
       document.querySelectorAll('nav button').forEach(function (b) {
         b.addEventListener('click', function () { switchTab(b.getAttribute('data-tab')); });
@@ -3801,8 +3847,14 @@
       ready: gameReady,
       getState: function () { return S; },
       getMonster: function () { return monster; },
-      attack: function () { doPlayerAttack(false); },
+      attack: function () { return requestManualAttack(); },
       doPlayerAttack: doPlayerAttack,
+      requestManualAttack: requestManualAttack,
+      flushPendingManualAttacks: flushPendingManualAttacks,
+      getPendingManualAttacks: function () { return pendingManualAttacks; },
+      getAtkResolved: function () { return atkResolved; },
+      clearAtkResolved: function () { atkResolved = 0; },
+      PENDING_ATK_CAP: PENDING_ATK_CAP,
       spawn: spawnMonster,
       save: stampAndSave,
       reset: resetGame,
